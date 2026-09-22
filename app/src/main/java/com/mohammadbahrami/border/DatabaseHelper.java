@@ -6,11 +6,11 @@ import android.database.sqlite.*;
 import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
-  public DatabaseHelper(Context c){super(c,"border_manager.db",null,2);}
+  public DatabaseHelper(Context c){super(c,"border_manager.db",null,3);}
   public void onCreate(SQLiteDatabase d){
     d.execSQL("CREATE TABLE owners(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL UNIQUE)");
     d.execSQL("CREATE TABLE cargos(id INTEGER PRIMARY KEY AUTOINCREMENT,owner_id INTEGER,name TEXT NOT NULL,iraqi_owner TEXT,broker TEXT,origin TEXT)");
-    d.execSQL("CREATE TABLE trucks(id INTEGER PRIMARY KEY AUTOINCREMENT,cargo_id INTEGER,plate TEXT NOT NULL,driver TEXT,phone TEXT,weight TEXT,size TEXT,created_at INTEGER)");
+    d.execSQL("CREATE TABLE trucks(id INTEGER PRIMARY KEY AUTOINCREMENT,cargo_id INTEGER,plate TEXT NOT NULL,driver TEXT,phone TEXT,weight TEXT,size TEXT,entry_at INTEGER,exit_at INTEGER,border_status TEXT,created_at INTEGER)");
   }
   public void onUpgrade(SQLiteDatabase d,int o,int n){
     if(o<2){ d.execSQL("ALTER TABLE trucks RENAME TO trucks_old");
@@ -18,14 +18,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
       try{d.execSQL("INSERT OR IGNORE INTO owners(name) SELECT DISTINCT CASE WHEN owner IS NULL OR owner='' THEN 'بدون نام' ELSE owner END FROM trucks_old");
         d.execSQL("INSERT INTO cargos(owner_id,name,iraqi_owner,broker,origin) SELECT o.id,CASE WHEN t.cargo IS NULL OR t.cargo='' THEN 'متفرقه' ELSE t.cargo END,'',MAX(t.broker),MAX(t.origin) FROM trucks_old t JOIN owners o ON o.name=CASE WHEN t.owner IS NULL OR t.owner='' THEN 'بدون نام' ELSE t.owner END GROUP BY o.id,t.cargo");
         d.execSQL("INSERT INTO trucks(cargo_id,plate,driver,phone,weight,size,created_at) SELECT c.id,t.plate,t.driver,t.phone,t.weight,'',t.created_at FROM trucks_old t JOIN owners o ON o.name=CASE WHEN t.owner IS NULL OR t.owner='' THEN 'بدون نام' ELSE t.owner END JOIN cargos c ON c.owner_id=o.id AND c.name=CASE WHEN t.cargo IS NULL OR t.cargo='' THEN 'متفرقه' ELSE t.cargo END");
-      }catch(Exception ignored){} d.execSQL("DROP TABLE IF EXISTS trucks_old"); }
+      }catch(Exception ignored){} d.execSQL("DROP TABLE IF EXISTS trucks_old"); } if(o<3){try{d.execSQL("ALTER TABLE trucks ADD COLUMN entry_at INTEGER");}catch(Exception ignored){} try{d.execSQL("ALTER TABLE trucks ADD COLUMN exit_at INTEGER");}catch(Exception ignored){} try{d.execSQL("ALTER TABLE trucks ADD COLUMN border_status TEXT");}catch(Exception ignored){}}
   }
   long addOwner(String n){ContentValues v=new ContentValues();v.put("name",n);return getWritableDatabase().insert("owners",null,v);}
   long addCargo(long oid,String n,String io,String b,String or){ContentValues v=new ContentValues();v.put("owner_id",oid);v.put("name",n);v.put("iraqi_owner",io);v.put("broker",b);v.put("origin",or);return getWritableDatabase().insert("cargos",null,v);}
-  long addTruck(long cid,String p,String d,String ph,String w,String s){ContentValues v=new ContentValues();v.put("cargo_id",cid);v.put("plate",p);v.put("driver",d);v.put("phone",ph);v.put("weight",w);v.put("size",s);v.put("created_at",System.currentTimeMillis());return getWritableDatabase().insert("trucks",null,v);}
+  long addTruck(long cid,String p,String d,String ph,String w,String s){ContentValues v=new ContentValues();v.put("cargo_id",cid);v.put("plate",p);v.put("driver",d);v.put("phone",ph);v.put("weight",w);v.put("size",s);v.put("entry_at",System.currentTimeMillis());v.put("border_status","پارکینگ");v.put("created_at",System.currentTimeMillis());return getWritableDatabase().insert("trucks",null,v);}  int updateTruck(long id,String p,String d,String ph,String w,String s,long entry,long exit,String status){ContentValues v=new ContentValues();v.put("plate",p);v.put("driver",d);v.put("phone",ph);v.put("weight",w);v.put("size",s);v.put("entry_at",entry);if(exit>0)v.put("exit_at",exit);else v.putNull("exit_at");v.put("border_status",status);return getWritableDatabase().update("trucks",v,"id=?",new String[]{""+id});}  int deleteTruck(long id){return getWritableDatabase().delete("trucks","id=?",new String[]{""+id});}  int deleteCargo(long id){getWritableDatabase().delete("trucks","cargo_id=?",new String[]{""+id});return getWritableDatabase().delete("cargos","id=?",new String[]{""+id});}  int updateCargo(long id,String n,String io,String b,String or){ContentValues v=new ContentValues();v.put("name",n);v.put("iraqi_owner",io);v.put("broker",b);v.put("origin",or);return getWritableDatabase().update("cargos",v,"id=?",new String[]{""+id});}
   Cursor owners(){return getReadableDatabase().rawQuery("SELECT o.id,o.name,COUNT(t.id) n FROM owners o LEFT JOIN cargos c ON c.owner_id=o.id LEFT JOIN trucks t ON t.cargo_id=c.id GROUP BY o.id ORDER BY o.id DESC",null);}
   Cursor cargos(long oid){return getReadableDatabase().rawQuery("SELECT c.id,c.name,c.iraqi_owner,c.broker,c.origin,COUNT(t.id) n FROM cargos c LEFT JOIN trucks t ON t.cargo_id=c.id WHERE c.owner_id=? GROUP BY c.id ORDER BY c.id DESC",new String[]{""+oid});}
-  Cursor trucks(long cid){return getReadableDatabase().rawQuery("SELECT id,plate,driver,phone,weight,size,created_at FROM trucks WHERE cargo_id=? ORDER BY id DESC",new String[]{""+cid});}
+  Cursor trucks(long cid){return getReadableDatabase().rawQuery("SELECT id,plate,driver,phone,weight,size,created_at,entry_at,exit_at,border_status FROM trucks WHERE cargo_id=? ORDER BY id DESC",new String[]{""+cid});}
   Cursor monthly(int jy,int jm){long[] r=Jalali.range(jy,jm);return getReadableDatabase().rawQuery("SELECT o.name,c.name,t.plate,t.driver,t.phone,t.weight,t.size,t.created_at FROM trucks t JOIN cargos c ON c.id=t.cargo_id JOIN owners o ON o.id=c.owner_id WHERE t.created_at>=? AND t.created_at<? ORDER BY o.name,c.name,t.id",new String[]{""+r[0],""+r[1]});}
   static class Jalali {
     static long[] range(int y,int m){int[] a=toGregorian(y,m,1),b=m==12?toGregorian(y+1,1,1):toGregorian(y,m+1,1);Calendar c=Calendar.getInstance();c.clear();c.set(a[0],a[1]-1,a[2]);long s=c.getTimeInMillis();c.clear();c.set(b[0],b[1]-1,b[2]);return new long[]{s,c.getTimeInMillis()};}
