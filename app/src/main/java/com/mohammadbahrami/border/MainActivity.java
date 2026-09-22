@@ -1,105 +1,23 @@
 package com.mohammadbahrami.border;
 
-import android.content.Intent;
-import android.graphics.Color;
-import android.net.Uri;
-import android.os.Bundle;
-import android.text.InputType;
-import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import java.util.List;
+import android.content.*;import android.database.Cursor;import android.graphics.*;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.print.*;import android.view.*;import android.webkit.WebView;import android.widget.*;import androidx.appcompat.app.AppCompatActivity;import java.text.*;import java.util.*;
 
-public class MainActivity extends AppCompatActivity {
-    private DatabaseHelper db;
-    private LinearLayout list, stats;
-    private EditText search;
-    private final int purple = Color.rgb(108,60,235);
-
-    @Override protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        getWindow().setStatusBarColor(Color.rgb(34,20,63));
-        getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        db = new DatabaseHelper(this);
-        setContentView(buildScreen());
-        refresh();
-    }
-
-    private View buildScreen() {
-        LinearLayout root = vertical(); root.setBackgroundColor(Color.rgb(250,248,255));
-        TextView header = text("بازرگانی محمد بهرامی", 24, Color.WHITE); header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(20), dp(20), dp(20), dp(20)); header.setBackgroundColor(Color.rgb(34,20,63));
-        root.addView(header, new LinearLayout.LayoutParams(-1, dp(80)));
-
-        stats = new LinearLayout(this); stats.setOrientation(LinearLayout.HORIZONTAL); stats.setGravity(Gravity.CENTER);
-        stats.setPadding(dp(8), dp(12), dp(8), dp(8)); root.addView(stats);
-
-        search = new EditText(this); search.setHint("جست‌وجوی پلاک، راننده یا صاحب کالا"); search.setSingleLine(true);
-        search.setBackgroundResource(com.mohammadbahrami.border.R.drawable.card_bg); search.setPadding(dp(16),0,dp(16),0);
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, dp(54)); sp.setMargins(dp(14),dp(4),dp(14),dp(10)); root.addView(search, sp);
-        search.setOnEditorActionListener((v, actionId, event) -> { refresh(); return true; });
-
-        ScrollView scroll = new ScrollView(this); list = vertical(); list.setPadding(dp(12),0,dp(12),dp(100)); scroll.addView(list);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1,0,1));
-
-        FloatingActionButton add = new FloatingActionButton(this); add.setImageResource(android.R.drawable.ic_input_add); add.setColorFilter(Color.WHITE); add.setBackgroundTintList(android.content.res.ColorStateList.valueOf(purple));
-        add.setOnClickListener(v -> showAdd());
-        android.widget.FrameLayout frame = new android.widget.FrameLayout(this); frame.addView(root);
-        android.widget.FrameLayout.LayoutParams fp = new android.widget.FrameLayout.LayoutParams(dp(64),dp(64),Gravity.BOTTOM|Gravity.END); fp.setMargins(0,0,dp(22),dp(22)); frame.addView(add,fp);
-        return frame;
-    }
-
-    private void refresh() {
-        stats.removeAllViews();
-        for (int i=0;i<3;i++) {
-            TextView s = text(DatabaseHelper.STATUSES[i] + "\n" + db.countStatus(i), 13, i==0?purple:Color.DKGRAY);
-            s.setGravity(Gravity.CENTER); s.setBackgroundResource(R.drawable.card_bg);
-            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0,dp(72),1); p.setMargins(dp(4),0,dp(4),0); stats.addView(s,p);
-        }
-        list.removeAllViews();
-        List<Truck> trucks = db.all(search == null ? "" : search.getText().toString().trim());
-        if (trucks.isEmpty()) { TextView empty=text("هنوز ماشینی ثبت نشده\nاز دکمه + اولین ماشین را اضافه کن",16,Color.GRAY); empty.setGravity(Gravity.CENTER); empty.setPadding(0,dp(70),0,0); list.addView(empty); }
-        for (Truck t : trucks) list.addView(truckCard(t));
-    }
-
-    private View truckCard(Truck t) {
-        LinearLayout card=vertical(); card.setBackgroundResource(R.drawable.card_bg); card.setPadding(dp(16),dp(12),dp(16),dp(12));
-        TextView title=text("پلاک: " + t.plate + "     " + DatabaseHelper.STATUSES[t.status],18,purple); title.setTypeface(null,1); card.addView(title);
-        card.addView(text("راننده: " + safe(t.driver) + "   |   صاحب کالا: " + safe(t.owner),14,Color.DKGRAY));
-        card.addView(text("بار: " + safe(t.cargo) + "   |   مبدأ: " + safe(t.origin),14,Color.DKGRAY));
-        card.addView(text("پارکینگ: " + safe(t.parking) + "   |   وزن: " + safe(t.weight),14,Color.DKGRAY));
-        LinearLayout actions=new LinearLayout(this); actions.setGravity(Gravity.END);
-        Button call=new Button(this); call.setText("تماس"); call.setOnClickListener(v->{ if(t.phone==null||t.phone.isEmpty()) Toast.makeText(this,"شماره ثبت نشده",Toast.LENGTH_SHORT).show(); else startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:"+t.phone))); });
-        Button next=new Button(this); next.setText(t.status<DatabaseHelper.STATUSES.length-1 ? "مرحله بعد" : "تکمیل شده"); next.setEnabled(t.status<DatabaseHelper.STATUSES.length-1); next.setOnClickListener(v->{db.advance(t.id,t.status);refresh();});
-        actions.addView(call); actions.addView(next); card.addView(actions);
-        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2); p.setMargins(0,dp(6),0,dp(8)); card.setLayoutParams(p); return card;
-    }
-
-    private void showAdd() {
-        LinearLayout form=vertical(); form.setPadding(dp(20),0,dp(20),0);
-        String[] labels={"شماره پلاک *","نام راننده","شماره تماس راننده","نوع بار","صاحب کالا","ترخیص‌کار عراقی","مبدأ بارگیری","شماره پارکینگ","وزن"};
-        EditText[] f=new EditText[labels.length];
-        for(int i=0;i<labels.length;i++){ f[i]=new EditText(this); f[i].setHint(labels[i]); f[i].setSingleLine(true); if(i==2)f[i].setInputType(InputType.TYPE_CLASS_PHONE); form.addView(f[i],new LinearLayout.LayoutParams(-1,dp(54))); }
-        ScrollView sv=new ScrollView(this); sv.addView(form);
-        AlertDialog d=new AlertDialog.Builder(this).setTitle("ثبت ماشین جدید").setView(sv).setNegativeButton("انصراف",null).setPositiveButton("ثبت",null).create();
-        d.setOnShowListener(x->d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
-            if(f[0].getText().toString().trim().isEmpty()){f[0].setError("پلاک الزامی است");return;}
-            db.add(val(f[0]),val(f[1]),val(f[2]),val(f[3]),val(f[4]),val(f[5]),val(f[6]),val(f[7]),val(f[8])); d.dismiss(); refresh();
-        })); d.show();
-    }
-
-    private String val(EditText e){return e.getText().toString().trim();}
-    private String safe(String s){return s==null||s.isEmpty()?"—":s;}
-    private LinearLayout vertical(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
-    private TextView text(String s,int size,int color){TextView v=new TextView(this);v.setText(s);v.setTextSize(size);v.setTextColor(color);v.setPadding(dp(4),dp(5),dp(4),dp(5));return v;}
-    private int dp(int v){return (int)(v*getResources().getDisplayMetrics().density+.5f);}
+public class MainActivity extends AppCompatActivity{
+ DatabaseHelper db; LinearLayout root,body; boolean dark=true; long ownerId,cargoId; String ownerName="",cargoName=""; int purple=Color.rgb(139,45,255);
+ public void onCreate(Bundle b){super.onCreate(b);getWindow().getDecorView().setLayoutDirection(View.LAYOUT_DIRECTION_RTL);db=new DatabaseHelper(this);dark=getPreferences(0).getBoolean("dark",true);home();}
+ int bg(){return dark?Color.rgb(8,8,20):Color.rgb(247,248,253);} int fg(){return dark?Color.WHITE:Color.rgb(25,25,38);} int card(){return dark?Color.rgb(20,20,40):Color.WHITE;} int sub(){return dark?0xffaaa8bb:0xff666477;}
+ TextView t(String s,int z){TextView v=new TextView(this);v.setText(s);v.setTextSize(z);v.setTextColor(fg());v.setPadding(d(14),d(12),d(14),d(12));return v;}
+ GradientDrawable box(){GradientDrawable g=new GradientDrawable();g.setColor(card());g.setCornerRadius(d(16));g.setStroke(d(1),dark?0xff38334f:0xffe5e2ee);return g;}
+ Button btn(String s){Button b=new Button(this);b.setText(s);b.setTextColor(Color.WHITE);b.setTextSize(15);GradientDrawable g=new GradientDrawable();g.setColor(purple);g.setCornerRadius(d(14));b.setBackground(g);return b;}
+ void shell(String title){root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(bg());LinearLayout h=new LinearLayout(this);h.setGravity(Gravity.CENTER_VERTICAL);if(!title.equals("صاحبان بار")){TextView back=t("‹",32);back.setOnClickListener(v->home());h.addView(back,new LinearLayout.LayoutParams(d(55),d(60)));}TextView logo=t("MB",25);logo.setTextColor(purple);logo.setTypeface(null,1);h.addView(logo);TextView x=t(title,21);x.setTypeface(null,1);h.addView(x,new LinearLayout.LayoutParams(0,d(70),1));TextView theme=t(dark?"☀":"☾",25);theme.setOnClickListener(v->{dark=!dark;getPreferences(0).edit().putBoolean("dark",dark).apply();home();});h.addView(theme);root.addView(h);ScrollView sv=new ScrollView(this);body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(d(14),d(4),d(14),d(90));sv.addView(body);root.addView(sv,new LinearLayout.LayoutParams(-1,0,1));setContentView(root);getWindow().setStatusBarColor(bg());}
+ void home(){shell("صاحبان بار");Button report=btn("گزارش ماهانه  •  PDF");report.setOnClickListener(v->reports());body.addView(report,new LinearLayout.LayoutParams(-1,d(55)));TextView hint=t("لیست صاحبان بار",18);hint.setTextColor(sub());body.addView(hint);Cursor c=db.owners();while(c.moveToNext()){long id=c.getLong(0);String n=c.getString(1);TextView r=t("▣  "+n+"\n     "+c.getInt(2)+" ماشین",18);r.setBackground(box());r.setOnClickListener(v->{ownerId=id;ownerName=n;cargos();});add(r);}c.close();Button add=btn("+  صاحب بار جدید");add.setOnClickListener(v->input("صاحب بار جدید","نام صاحب بار",x->{if(!x.isEmpty())db.addOwner(x);home();}));body.addView(add,new LinearLayout.LayoutParams(-1,d(58)));}
+ void cargos(){shell(ownerName+"  •  محموله‌ها");Cursor c=db.cargos(ownerId);while(c.moveToNext()){long id=c.getLong(0);String n=c.getString(1);TextView r=t("📁  "+n+"\n     "+c.getInt(5)+" ماشین",19);r.setBackground(box());r.setOnClickListener(v->{cargoId=id;cargoName=n;trucks();});add(r);}c.close();Button b=btn("+  نوع بار جدید");b.setOnClickListener(v->cargoDialog());body.addView(b,new LinearLayout.LayoutParams(-1,d(58)));}
+ void cargoDialog(){LinearLayout f=form();EditText n=e("نام نوع بار (مثلاً کاشی / متفرقه)"),io=e("صاحب بار عراقی"),br=e("ترخیص‌کار عراقی"),or=e("مبدأ بارگیری");f.addView(n);f.addView(io);f.addView(br);f.addView(or);new androidx.appcompat.app.AlertDialog.Builder(this).setTitle("افزودن نوع بار").setView(f).setNegativeButton("انصراف",null).setPositiveButton("ثبت",(d,w)->{if(!n.getText().toString().trim().isEmpty())db.addCargo(ownerId,val(n),val(io),val(br),val(or));cargos();}).show();}
+ void trucks(){shell(ownerName+"  /  "+cargoName);Button b=btn("+  ثبت ماشین جدید");b.setOnClickListener(v->truckDialog());body.addView(b,new LinearLayout.LayoutParams(-1,d(58)));Cursor c=db.trucks(cargoId);while(c.moveToNext()){String phone=c.getString(3);TextView r=t("پلاک  "+c.getString(1)+"     وزن "+safe(c.getString(4))+"     سایز "+safe(c.getString(5))+"\nراننده: "+safe(c.getString(2))+"     ☎ "+safe(phone),16);r.setBackground(box());r.setOnClickListener(v->{if(phone!=null&&!phone.isEmpty())startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+phone)));});add(r);}c.close();}
+ void truckDialog(){LinearLayout f=form();EditText p=e("پلاک"),w=e("وزن (کیلوگرم)"),s=e("سایز (متر)"),ph=e("شماره تماس راننده"),dr=e("نام راننده");ph.setInputType(3);f.addView(p);f.addView(w);f.addView(s);f.addView(ph);f.addView(dr);new androidx.appcompat.app.AlertDialog.Builder(this).setTitle("ثبت ماشین جدید").setView(f).setNegativeButton("انصراف",null).setPositiveButton("ثبت",(d,x)->{if(!val(p).isEmpty())db.addTruck(cargoId,val(p),val(dr),val(ph),val(w),val(s));trucks();}).show();}
+ void reports(){int[] td=DatabaseHelper.Jalali.today();shell("گزارش‌های ماهانه  "+td[0]);String[] m={"فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"};for(int i=1;i<=12;i++){final int mm=i;Cursor c=db.monthly(td[0],i);int n=c.getCount();c.close();TextView r=t(m[i-1]+"     "+n+" ماشین",18);r.setBackground(box());r.setOnClickListener(v->month(td[0],mm,m[mm-1]));add(r);}}
+ void month(int y,int m,String mn){shell("گزارش "+mn+" "+y);Cursor c=db.monthly(y,m);int n=c.getCount();double total=0;StringBuilder html=new StringBuilder("<html dir='rtl'><meta charset='utf-8'><style>body{font-family:sans-serif;padding:28px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #aaa;padding:7px}h1{color:#7628df}</style><h1>MB - Mohammad Bahrami</h1><h2>گزارش "+mn+" "+y+"</h2><table><tr><th>صاحب بار</th><th>نوع بار</th><th>پلاک</th><th>راننده</th><th>وزن</th><th>سایز</th></tr>");while(c.moveToNext()){try{total+=Double.parseDouble(c.getString(5).replace(",",""));}catch(Exception e){}html.append("<tr><td>").append(c.getString(0)).append("</td><td>").append(c.getString(1)).append("</td><td>").append(c.getString(2)).append("</td><td>").append(safe(c.getString(3))).append("</td><td>").append(safe(c.getString(5))).append("</td><td>").append(safe(c.getString(6))).append("</td></tr>");}c.close();html.append("</table></html>");TextView sum=t("تعداد کل ماشین‌ها: "+n+"\nمجموع وزن: "+new DecimalFormat("#,###").format(total)+" کیلوگرم",22);sum.setBackground(box());body.addView(sum);Button pdf=btn("خروجی PDF");String h=html.toString();pdf.setOnClickListener(v->pdf(h,mn+"-"+y));body.addView(pdf,new LinearLayout.LayoutParams(-1,d(58)));}
+ void pdf(String html,String name){WebView w=new WebView(this);w.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);w.setWebViewClient(new android.webkit.WebViewClient(){public void onPageFinished(WebView v,String u){PrintManager pm=(PrintManager)getSystemService(PRINT_SERVICE);pm.print("MB-"+name,v.createPrintDocumentAdapter("گزارش-"+name),new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4).build());}});}
+ interface Done{void go(String s);}void input(String title,String hint,Done done){EditText x=e(hint);new androidx.appcompat.app.AlertDialog.Builder(this).setTitle(title).setView(x).setNegativeButton("انصراف",null).setPositiveButton("ثبت",(d,w)->done.go(val(x))).show();}
+ LinearLayout form(){LinearLayout f=new LinearLayout(this);f.setOrientation(LinearLayout.VERTICAL);f.setPadding(d(20),0,d(20),0);return f;}EditText e(String h){EditText x=new EditText(this);x.setHint(h);x.setSingleLine();x.setPadding(d(12),d(8),d(12),d(8));return x;}void add(View v){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,d(5),0,d(7));body.addView(v,p);}String val(EditText e){return e.getText().toString().trim();}String safe(String s){return s==null||s.isEmpty()?"—":s;}int d(int x){return(int)(x*getResources().getDisplayMetrics().density+.5f);}
 }
