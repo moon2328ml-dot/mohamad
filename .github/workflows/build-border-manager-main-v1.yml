@@ -31,6 +31,12 @@ jobs:
           sed -i 's/compileSdk = 37/compileSdk = 36/' build-src/app/build.gradle.kts
           sed -i 's/targetSdk = 37/targetSdk = 36/' build-src/app/build.gradle.kts
           sed -i '/id("org.jetbrains.kotlin.android")/d' build-src/app/build.gradle.kts
+          sed -i 's/compose-bom:2026.09.00/compose-bom:2025.08.00/' build-src/app/build.gradle.kts
+          sed -i 's/androidx.core:core-ktx:1.19.1/androidx.core:core-ktx:1.16.0/' build-src/app/build.gradle.kts
+          sed -i 's/androidx.activity:activity-compose:1.13.0/androidx.activity:activity-compose:1.10.1/' build-src/app/build.gradle.kts
+          sed -i 's/androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0/androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2/' build-src/app/build.gradle.kts
+          sed -i 's/androidx.lifecycle:lifecycle-runtime-compose:2.11.0/androidx.lifecycle:lifecycle-runtime-compose:2.9.2/' build-src/app/build.gradle.kts
+          sed -i 's/arrayOf(status.dbValue, System.currentTimeMillis(), id)/arrayOf<Any?>(status.dbValue, System.currentTimeMillis(), id)/' build-src/app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
 
       - name: Set up Java
         uses: actions/setup-java@v4
