@@ -1,0 +1,85 @@
+name: Build BorderManager v1.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "border-manager-v1.1/**"
+      - ".github/workflows/build-border-manager-v1.1.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reconstruct source project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-src
+          cat border-manager-v1.1/payload/part-* > /tmp/border-manager-v11.tar.gz.b64
+          base64 -d /tmp/border-manager-v11.tar.gz.b64 > /tmp/border-manager-v11.tar.gz
+          echo "253260aa306439d0f1756da287be1ae89240181675bfd817ab68810f5b5d0bf9  /tmp/border-manager-v11.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/border-manager-v11.tar.gz -C build-src
+          test -f build-src/settings.gradle.kts
+          test -f build-src/app/src/main/AndroidManifest.xml
+
+      - name: Migrate legacy completed records
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path("build-src/app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt")
+          s = p.read_text()
+          s = s.replace("private const val DB_VERSION = 1", "private const val DB_VERSION = 2")
+          s = s.replace(
+              "override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit",
+              """override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+                  if (oldVersion < 2) {
+                      db.execSQL("UPDATE trucks SET status='UNLOADED' WHERE completed_at IS NOT NULL")
+                  }
+              }"""
+          )
+          p.write_text(s)
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Build debug APK
+        working-directory: build-src
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -f build-src/app/build/outputs/apk/debug/app-debug.apk
+          cp build-src/app/build/outputs/apk/debug/app-debug.apk BorderManager-v1.1.0-debug.apk
+          sha256sum BorderManager-v1.1.0-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BorderManager-v1.1.0-APK
+          path: BorderManager-v1.1.0-debug.apk
+          if-no-files-found: error
+          retention-days: 30
