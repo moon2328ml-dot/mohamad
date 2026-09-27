@@ -63,7 +63,7 @@ jobs:
           echo "ecb458c2ad66a46ac5e4c6fc7682aff144ed926408a707820146dc939b55a62c  /tmp/border-manager-v1.3.patch.gz" | sha256sum -c -
           gunzip -c /tmp/border-manager-v1.3.patch.gz > /tmp/border-manager-v1.3.patch
           cd build-src
-          patch -p2 < /tmp/border-manager-v1.3.patch
+          patch -p1 < /tmp/border-manager-v1.3.patch
           grep -q 'versionName = "1.3.0"' app/build.gradle.kts
           grep -q 'android.permission.INTERNET' app/src/main/AndroidManifest.xml
           test -f app/src/main/java/ir/bordermanager/data/CloudSync.kt
