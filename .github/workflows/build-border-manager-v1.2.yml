@@ -1,0 +1,103 @@
+name: Build BorderManager v1.2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "border-manager-v1.2/**"
+      - ".github/workflows/build-border-manager-v1.2.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reconstruct v1.1 source and apply v1.2 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-src
+          cat border-manager-v1.1/payload/part-* > /tmp/border-manager-v11.tar.gz.b64
+          base64 -d /tmp/border-manager-v11.tar.gz.b64 > /tmp/border-manager-v11.tar.gz
+          echo "253260aa306439d0f1756da287be1ae89240181675bfd817ab68810f5b5d0bf9  /tmp/border-manager-v11.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/border-manager-v11.tar.gz -C build-src
+
+          base64 -d border-manager-v1.2/patch-v1.2.gz.b64 > /tmp/border-manager-v1.2.patch.gz
+          echo "cfe69106fdd58ff1d8081e6c73b2f096188e07ee06dd454f946772ae652617ba  /tmp/border-manager-v1.2.patch.gz" | sha256sum -c -
+          gunzip -c /tmp/border-manager-v1.2.patch.gz > /tmp/border-manager-v1.2.patch
+          cd build-src
+          patch -p2 < /tmp/border-manager-v1.2.patch
+          test -f settings.gradle.kts
+          grep -q 'versionName = "1.2.0"' app/build.gradle.kts
+          grep -q 'private const val DB_VERSION = 3' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Build debug APK
+        working-directory: build-src
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Build unsigned release APK
+        working-directory: build-src
+        run: gradle :app:assembleRelease --stacktrace --no-daemon
+
+      - name: Package outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f build-src/app/build/outputs/apk/debug/app-debug.apk
+          test -f build-src/app/build/outputs/apk/release/app-release-unsigned.apk
+          test -f "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar"
+          cp build-src/app/build/outputs/apk/debug/app-debug.apk BorderManager-v1.2.0-debug.apk
+          cp build-src/app/build/outputs/apk/release/app-release-unsigned.apk BorderManager-v1.2.0-release-unsigned.apk
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" apksigner.jar
+          tar -czf BorderManager-v1.2.0-source.tar.gz -C build-src .
+          sha256sum BorderManager-v1.2.0-debug.apk BorderManager-v1.2.0-release-unsigned.apk BorderManager-v1.2.0-source.tar.gz
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BorderManager-v1.2.0-debug
+          path: BorderManager-v1.2.0-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload release signing tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: BorderManager-v1.2.0-release-tools
+          path: |
+            BorderManager-v1.2.0-release-unsigned.apk
+            apksigner.jar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload source
+        uses: actions/upload-artifact@v4
+        with:
+          name: BorderManager-v1.2.0-source
+          path: BorderManager-v1.2.0-source.tar.gz
+          if-no-files-found: error
+          retention-days: 30
