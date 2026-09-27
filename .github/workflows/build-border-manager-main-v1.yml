@@ -28,6 +28,8 @@ jobs:
           tar -xzf /tmp/border-manager.tar.gz -C build-src
           test -f build-src/settings.gradle.kts
           test -f build-src/app/src/main/AndroidManifest.xml
+          sed -i 's/compileSdk = 37/compileSdk = 36/' build-src/app/build.gradle.kts
+          sed -i 's/targetSdk = 37/targetSdk = 36/' build-src/app/build.gradle.kts
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -42,7 +44,7 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
           echo "Using $SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
