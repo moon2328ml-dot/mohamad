@@ -1,0 +1,183 @@
+name: Build BorderManager v1.3.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "border-manager-v1.3/**"
+      - "border-manager-v1.3.1/**"
+      - ".github/workflows/build-border-manager-v1.3.1.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reconstruct v1.1 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build-src
+          cat border-manager-v1.1/payload/part-* > /tmp/border-manager-v11.tar.gz.b64
+          base64 -d /tmp/border-manager-v11.tar.gz.b64 > /tmp/border-manager-v11.tar.gz
+          echo "253260aa306439d0f1756da287be1ae89240181675bfd817ab68810f5b5d0bf9  /tmp/border-manager-v11.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/border-manager-v11.tar.gz -C build-src
+
+      - name: Recreate v1.1 database migration
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path("build-src/app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt")
+          s = p.read_text()
+          s = s.replace("private const val DB_VERSION = 1", "private const val DB_VERSION = 2")
+          s = s.replace(
+              "override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit",
+              """override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+                  if (oldVersion < 2) {
+                      db.execSQL("UPDATE trucks SET status='UNLOADED' WHERE completed_at IS NOT NULL")
+                  }
+              }"""
+          )
+          p.write_text(s)
+
+      - name: Apply v1.2 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat border-manager-v1.2/patch/part-* > /tmp/border-manager-v1.2.patch.gz.b64
+          base64 -d /tmp/border-manager-v1.2.patch.gz.b64 > /tmp/border-manager-v1.2.patch.gz
+          echo "cfe69106fdd58ff1d8081e6c73b2f096188e07ee06dd454f946772ae652617ba  /tmp/border-manager-v1.2.patch.gz" | sha256sum -c -
+          gunzip -c /tmp/border-manager-v1.2.patch.gz > /tmp/border-manager-v1.2.patch
+          cd build-src
+          patch -p2 < /tmp/border-manager-v1.2.patch
+
+      - name: Apply v1.3 account patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d border-manager-v1.3/patch-v1.3.gz.b64 > /tmp/border-manager-v1.3.patch.gz
+          echo "ecb458c2ad66a46ac5e4c6fc7682aff144ed926408a707820146dc939b55a62c  /tmp/border-manager-v1.3.patch.gz" | sha256sum -c -
+          gunzip -c /tmp/border-manager-v1.3.patch.gz > /tmp/border-manager-v1.3.patch
+          cd build-src
+          patch -p1 < /tmp/border-manager-v1.3.patch
+          grep -q 'versionName = "1.3.0"' app/build.gradle.kts
+          grep -q 'android.permission.INTERNET' app/src/main/AndroidManifest.xml
+          test -f app/src/main/java/ir/bordermanager/data/CloudSync.kt
+          test -f app/src/main/java/ir/bordermanager/ui/AccountScreen.kt
+
+      - name: Apply v1.3.1 full-bleed app icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd build-src
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("app/build.gradle.kts")
+          s = p.read_text()
+          s = s.replace('versionCode = 130', 'versionCode = 131')
+          s = s.replace('versionName = "1.3.0"', 'versionName = "1.3.1"')
+          p.write_text(s)
+
+          m = Path("app/src/main/AndroidManifest.xml")
+          s = m.read_text()
+          s = s.replace('android:icon="@drawable/ic_launcher"', 'android:icon="@mipmap/ic_launcher"')
+          s = s.replace('android:roundIcon="@drawable/ic_launcher"', 'android:roundIcon="@mipmap/ic_launcher_round"')
+          m.write_text(s)
+          PY
+
+          mkdir -p app/src/main/res/drawable-nodpi app/src/main/res/mipmap-anydpi app/src/main/res/mipmap-anydpi-v26
+          base64 -d ../border-manager-v1.3.1/icon-256.webp.b64 > app/src/main/res/drawable-nodpi/app_icon_full.webp
+
+          cat > app/src/main/res/mipmap-anydpi/ic_launcher.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+              android:src="@drawable/app_icon_full"
+              android:gravity="fill" />
+          EOF
+
+          cp app/src/main/res/mipmap-anydpi/ic_launcher.xml app/src/main/res/mipmap-anydpi/ic_launcher_round.xml
+
+          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/app_icon_full" />
+              <foreground android:drawable="@android:color/transparent" />
+          </adaptive-icon>
+          EOF
+
+          cp app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+
+          grep -q 'versionName = "1.3.1"' app/build.gradle.kts
+          grep -q 'android:icon="@mipmap/ic_launcher"' app/src/main/AndroidManifest.xml
+          test -s app/src/main/res/drawable-nodpi/app_icon_full.webp
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.6.0"
+
+      - name: Build debug APK
+        working-directory: build-src
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Build unsigned release APK
+        working-directory: build-src
+        run: gradle :app:assembleRelease --stacktrace --no-daemon
+
+      - name: Package outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f build-src/app/build/outputs/apk/debug/app-debug.apk
+          test -f build-src/app/build/outputs/apk/release/app-release-unsigned.apk
+          test -f "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar"
+          cp build-src/app/build/outputs/apk/debug/app-debug.apk BorderManager-v1.3.1-debug.apk
+          cp build-src/app/build/outputs/apk/release/app-release-unsigned.apk BorderManager-v1.3.1-release-unsigned.apk
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" apksigner.jar
+          tar -czf BorderManager-v1.3.1-source.tar.gz -C build-src .
+          sha256sum BorderManager-v1.3.1-debug.apk BorderManager-v1.3.1-release-unsigned.apk BorderManager-v1.3.1-source.tar.gz
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BorderManager-v1.3.1-debug
+          path: BorderManager-v1.3.1-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload release signing tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: BorderManager-v1.3.1-release-tools
+          path: |
+            BorderManager-v1.3.1-release-unsigned.apk
+            apksigner.jar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload source
+        uses: actions/upload-artifact@v4
+        with:
+          name: BorderManager-v1.3.1-source
+          path: BorderManager-v1.3.1-source.tar.gz
+          if-no-files-found: error
+          retention-days: 30
