@@ -191,6 +191,7 @@ jobs:
           gunzip -c /tmp/border-manager-v1.5.1.patch.gz > /tmp/border-manager-v1.5.1.patch
           cd build-src
           patch -p1 < /tmp/border-manager-v1.5.1.patch
+          sed -i '/import ir.bordermanager.data.CargoStatus/a import ir.bordermanager.data.DailyProgressRow' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
           grep -q 'versionName = "1.5.1"' app/build.gradle.kts
           grep -q 'private const val DB_VERSION = 6' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
           grep -q 'data class DailyProgressRow' app/src/main/java/ir/bordermanager/data/Models.kt
