@@ -173,6 +173,7 @@ jobs:
           gunzip -c /tmp/border-manager-v1.5.patch.gz > /tmp/border-manager-v1.5.patch
           cd build-src
           patch -p1 < /tmp/border-manager-v1.5.patch
+          sed -i 's/t\.unloadedAt/t.completedAt/g' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
           grep -q 'versionName = "1.5.0"' app/build.gradle.kts
           grep -q 'private const val DB_VERSION = 5' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
           grep -q 'data class CargoPart' app/src/main/java/ir/bordermanager/data/Models.kt
