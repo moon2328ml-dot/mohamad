@@ -8,7 +8,7 @@ enum class Screen { WELCOME, KYC, CREDIT, MEMBERSHIP, HOME, ROOM, WALLET, PROFIL
 
 data class DemoState(
     val creditTier: String = "A",
-    val creditScore: Int = ۸۶۵,
+    val creditScore: Int = 865,
     val roomName: String = "اتاقک زرین",
     val seat: Int = 7,
     val seats: Int = 12,
