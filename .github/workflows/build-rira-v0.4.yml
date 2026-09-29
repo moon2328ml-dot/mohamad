@@ -1,0 +1,64 @@
+name: Build Rira v0.4
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "rira-app/**"
+      - ".github/workflows/build-rira-v0.4.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore Rira icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rira-app/app/src/main/res/drawable
+          base64 -d rira-app/assets/rira_brand_icon.webp.b64 > rira-app/app/src/main/res/drawable/rira_brand_icon.webp
+          test -s rira-app/app/src/main/res/drawable/rira_brand_icon.webp
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build debug APK
+        working-directory: rira-app
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Package APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp rira-app/app/build/outputs/apk/debug/app-debug.apk Rira-v0.4.0-demo.apk
+          sha256sum Rira-v0.4.0-demo.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rira-v0.4.0-demo-apk
+          path: Rira-v0.4.0-demo.apk
+          if-no-files-found: error
+          retention-days: 30
