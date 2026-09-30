@@ -26,3 +26,14 @@ jobs:
         with:
           name: Mohammad-Life-OS-v1.0
           path: lifeos/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Collect Android signing tools
+        run: |
+          mkdir -p signing-tools/lib
+          cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" signing-tools/lib/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Android-Signing-Tools-35
+          path: signing-tools
