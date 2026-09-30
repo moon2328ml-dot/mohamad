@@ -32,7 +32,9 @@ jobs:
           mkdir -p signing-tools/lib
           cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" signing-tools/
           cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" signing-tools/
-          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" signing-tools/lib/\n          mkdir -p signing-tools/lib64\n          cp "$ANDROID_HOME/build-tools/35.0.0/lib64/libc++.so" signing-tools/lib64/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" signing-tools/lib/
+          mkdir -p signing-tools/lib64
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib64/libc++.so" signing-tools/lib64/
       - uses: actions/upload-artifact@v4
         with:
           name: Android-Signing-Tools-35
