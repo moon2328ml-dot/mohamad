@@ -24,6 +24,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.sp
 
 data class Dash(
@@ -200,14 +202,16 @@ fun HomeScreen(
                 }
 
                 item{
-                    LazyVerticalGrid(
-                        columns=GridCells.Fixed(4),
-                        modifier=Modifier.fillMaxWidth().height(214.dp),
-                        userScrollEnabled=false,
-                        horizontalArrangement=Arrangement.spacedBy(6.dp),
-                        verticalArrangement=Arrangement.spacedBy(7.dp)
-                    ){
-                        gridItems(cards){card->HomeCategoryTile(card,onOpen)}
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr){
+                        LazyVerticalGrid(
+                            columns=GridCells.Fixed(4),
+                            modifier=Modifier.fillMaxWidth().height(214.dp),
+                            userScrollEnabled=false,
+                            horizontalArrangement=Arrangement.spacedBy(6.dp),
+                            verticalArrangement=Arrangement.spacedBy(7.dp)
+                        ){
+                            gridItems(cards){card->HomeCategoryTile(card,onOpen)}
+                        }
                     }
                 }
 
@@ -220,19 +224,6 @@ fun HomeScreen(
                     }
                 }
 
-                item{
-                    GlassCard(strong=true){
-                        Text("کنترل زندگی در دستان توست",fontSize=17.sp,fontWeight=FontWeight.ExtraBold,color=Gold)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            if(totalToday==0) "برای امروز هنوز برنامه‌ای نساختی. برنامه و روتین را خودت می‌چینی."
-                            else if(progress==100) "مسیر امروز کامل شد؛ نتیجه را ثبت کن و برای فردا آماده شو."
-                            else "فقط روی قدم بعدی تمرکز کن؛ برنامه جای تو تصمیم نمی‌گیرد.",
-                            fontSize=12.sp,
-                            color=MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
             }
 
             BottomNav(Screen.HOME,onOpen)
