@@ -1,6 +1,30 @@
 --- a/app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
 +++ b/app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
-@@ -63,25 +63,19 @@
+@@ -31,6 +31,15 @@
+     private const val PAGE_W = 595
+     private const val PAGE_H = 842
+     private const val MARGIN = 34f
++    private var reportTypeface: Typeface = Typeface.DEFAULT
++
++    private fun loadReportTypeface(context: Context) {
++        reportTypeface = try {
++            Typeface.createFromAsset(context.assets, "fonts/BYekan.ttf")
++        } catch (_: Exception) {
++            Typeface.DEFAULT
++        }
++    }
+ 
+     fun monthlyReport(
+         context: Context,
+@@ -41,6 +50,7 @@
+         accounting: List<Pair<Owner, Accounting>>
+     ): File {
+         val pdf = PdfDocument()
++        loadReportTypeface(context)
+         val prefs = AppPreferences(context)
+         val title = "گزارش ماهانه وضعیت بار — ${Jalali.Date(year, month, 1).monthTitle()}"
+         var pageNo = 1
+@@ -63,25 +73,19 @@
                  y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
              }
              y = drawOwnerBand(page.canvas, y, ownerName, ownerTrucks.size, ownerIndex)
@@ -34,7 +58,23 @@
              }
              y += 3f
          }
-@@ -225,26 +219,25 @@
+@@ -144,6 +148,7 @@
+         accounting: Accounting
+     ): File {
+         val pdf = PdfDocument()
++        loadReportTypeface(context)
+         val prefs = AppPreferences(context)
+         var pageNo = 1
+         var page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
+@@ -203,6 +208,7 @@
+         journeys: List<CargoDayJourney>
+     ): File {
+         val pdf = PdfDocument()
++        loadReportTypeface(context)
+         val prefs = AppPreferences(context)
+         val title = "گزارش روزانه وضعیت بار — ${date.format()}"
+         var pageNo = 1
+@@ -225,26 +231,25 @@
                      y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
                  }
                  y = drawOwnerBand(page.canvas, y, ownerName, list.size, ownerIndex)
@@ -72,7 +112,7 @@
                  }
                  y += 3f
              }
-@@ -281,48 +274,11 @@
+@@ -281,48 +286,11 @@
          borderTitle: String,
          dailyGroups: List<Pair<Jalali.Date, List<CargoDayJourney>>>
      ): File {
@@ -126,7 +166,15 @@
      }
  
      fun statusReport(
-@@ -396,6 +352,78 @@
+@@ -333,6 +301,7 @@
+         trucks: List<Truck>
+     ): File {
+         val pdf = PdfDocument()
++        loadReportTypeface(context)
+         val prefs = AppPreferences(context)
+         var pageNo = 1
+         var page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
+@@ -396,6 +365,99 @@
          Color.rgb(241, 247, 248) to Color.rgb(46, 105, 113)
      )
  
@@ -171,7 +219,11 @@
 +            val w = reportColumnWidths[i]
 +            val left = right - w
 +            if (i == 5) canvas.drawRoundRect(RectF(left + 3f, y + 5f, right - 3f, y + h - 5f), 8f, 8f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = statusBg })
-+            drawCellText(canvas, value, left + 3f, y + 8f, w - 6f, if (i == 2 || i == 6) 7f else 7.7f, i == 0 || i == 5, if (i == 5) statusFg else Color.rgb(35, 31, 52), if (i == 2 || i == 6) 3 else 2)
++            if (i == 6) {
++                drawCustomsCell(canvas, value, left, y, w, h)
++            } else {
++                drawCellText(canvas, value, left + 3f, y + 8f, w - 6f, if (i == 2) 7f else 7.7f, i == 0 || i == 5, if (i == 5) statusFg else Color.rgb(35, 31, 52), if (i == 2) 3 else 2)
++            }
 +            canvas.drawLine(left, y, left, y + h, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(225, 222, 233); strokeWidth = .65f })
 +            right = left
 +        }
@@ -179,10 +231,27 @@
 +        return y + h
 +    }
 +
++    private fun drawCustomsCell(canvas: android.graphics.Canvas, text: String, left: Float, top: Float, width: Float, height: Float) {
++        val lines = text.split("\n")
++        if (lines.size < 2) {
++            drawCellText(canvas, text, left + 3f, top + 8f, width - 6f, 7f, true, Color.rgb(35, 31, 52), 2)
++            return
++        }
++        lines.take(2).forEachIndexed { index, raw ->
++            val ok = raw.contains("✓")
++            val label = raw.replace("✓", "").replace("✕", "").trim()
++            val bg = if (ok) Color.rgb(224, 246, 231) else Color.rgb(255, 231, 234)
++            val fg = if (ok) Color.rgb(22, 126, 67) else Color.rgb(185, 43, 56)
++            val pillTop = top + 5f + index * 25f
++            canvas.drawRoundRect(RectF(left + 4f, pillTop, left + width - 4f, pillTop + 20f), 7f, 7f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = bg })
++            drawCellText(canvas, label, left + 6f, pillTop + 5f, width - 12f, 6.7f, true, fg, 1)
++        }
++    }
++
 +    private fun drawCellText(canvas: android.graphics.Canvas, text: String, left: Float, top: Float, width: Float, size: Float, bold: Boolean, color: Int, maxLines: Int) {
 +        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
 +            this.color = color; textSize = size
-+            typeface = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
++            typeface = if (bold) Typeface.create(reportTypeface, Typeface.BOLD) else reportTypeface
 +        }
 +        val layout = StaticLayout.Builder.obtain(text, 0, text.length, paint, width.toInt().coerceAtLeast(1))
 +            .setAlignment(Layout.Alignment.ALIGN_CENTER)
@@ -205,3 +274,48 @@
      private fun drawOwnerBand(canvas: android.graphics.Canvas, y: Float, ownerName: String, count: Int, index: Int): Float {
          val (bg, fg) = ownerPalette[index % ownerPalette.size]
          val h = 31f
+@@ -449,9 +511,9 @@
+         val (bg, fg) = statusColors(status, disposition)
+         y = drawInfoBand(canvas, y, "$title — ${Formatters.number(items.size)} ماشین", bg, fg) + 3f
+         if (items.isEmpty()) return drawRtlColor(canvas, "موردی ندارد", y, 9.3f, false, Color.rgb(110, 110, 120)) + 3f
+-        items.groupBy { it.truck.ownerName.ifBlank { "بدون صاحب کالا" } }.forEach { (owner, rows) ->
++        items.groupBy { it.truck.ownerName.ifBlank { "بدون صاحب کالا" } }.entries.forEachIndexed { ownerIndex, (owner, rows) ->
+             val plates = rows.joinToString("، ") { it.truck.plate }
+-            y = drawRtlColor(canvas, "$owner: $plates", y, 9.4f, true, fg)
++            y = drawSummaryOwnerRow(canvas, y, owner, rows.size, plates, ownerIndex, fg)
+         }
+         return y + 4f
+     }
+@@ -468,13 +530,21 @@
+         val (bg, fg) = statusColors(status, disposition)
+         y = drawInfoBand(canvas, y, "$title — ${Formatters.number(items.size)} ماشین", bg, fg) + 3f
+         if (items.isEmpty()) return drawRtlColor(canvas, "موردی ندارد", y, 9.3f, false, Color.rgb(110, 110, 120)) + 3f
+-        items.groupBy { it.ownerName.ifBlank { "بدون صاحب کالا" } }.forEach { (owner, rows) ->
++        items.groupBy { it.ownerName.ifBlank { "بدون صاحب کالا" } }.entries.forEachIndexed { ownerIndex, (owner, rows) ->
+             val plates = rows.joinToString("، ") { it.plate }
+-            y = drawRtlColor(canvas, "$owner: $plates", y, 9.4f, true, fg)
++            y = drawSummaryOwnerRow(canvas, y, owner, rows.size, plates, ownerIndex, fg)
+         }
+         return y + 4f
+     }
+ 
++    private fun drawSummaryOwnerRow(canvas: android.graphics.Canvas, y: Float, owner: String, count: Int, plates: String, ownerIndex: Int, fallbackFg: Int): Float {
++        val (bg, fg) = ownerPalette[ownerIndex % ownerPalette.size]
++        val bandH = 23f
++        canvas.drawRoundRect(RectF(MARGIN, y, PAGE_W - MARGIN, y + bandH), 8f, 8f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = bg })
++        drawRtlColor(canvas, "$owner — ${Formatters.number(count)} پلاک", y + 5f, 9.2f, true, fg)
++        return drawRtlColor(canvas, "پلاک‌ها: $plates", y + bandH + 2f, 8.8f, false, fallbackFg)
++    }
++
+     private fun drawFooter(canvas: android.graphics.Canvas, pageNo: Int, label: String) {
+         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(225, 220, 238); strokeWidth = 1f }
+         canvas.drawLine(MARGIN, PAGE_H - 32f, PAGE_W - MARGIN, PAGE_H - 32f, p)
+@@ -485,7 +555,7 @@
+         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+             this.color = color
+             textSize = size
+-            typeface = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
++            typeface = if (bold) Typeface.create(reportTypeface, Typeface.BOLD) else reportTypeface
+         }
+         val width = (PAGE_W - 2 * MARGIN).toInt()
+         val layout = StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
