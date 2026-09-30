@@ -22,16 +22,17 @@ import androidx.compose.ui.unit.sp
 
 data class RefCrop(val x:Int,val y:Int,val w:Int,val h:Int)
 
-private val growthCrop=RefCrop(0,430,255,264)
-private val financeCrop=RefCrop(256,430,255,264)
-private val relationCrop=RefCrop(512,430,255,264)
-private val bodyCrop=RefCrop(768,430,256,264)
-private val spiritCrop=RefCrop(0,697,255,265)
-private val powerCrop=RefCrop(256,697,255,265)
-private val attractionCrop=RefCrop(512,697,255,265)
-private val analysisCrop=RefCrop(768,697,256,265)
-private val analysisBodyCrop=RefCrop(0,968,512,432)
-private val darkFigureCrop=RefCrop(512,968,512,432)
+private val growthCrop=RefCrop(5,286,196,126)
+private val financeCrop=RefCrop(208,286,198,126)
+private val relationCrop=RefCrop(414,286,200,126)
+private val bodyCrop=RefCrop(622,286,197,126)
+private val spiritCrop=RefCrop(827,286,202,126)
+private val powerCrop=RefCrop(1035,286,200,126)
+private val attractionCrop=RefCrop(1243,286,201,126)
+private val analysisCrop=RefCrop(1450,286,216,126)
+private val analysisBodyCrop=RefCrop(572,520,260,385)
+private val darkFigureCrop=RefCrop(1094,520,259,385)
+val homeHeroCrop=RefCrop(20,0,290,270)
 
 fun featureCrop(screen:Screen):RefCrop = when(screen){
  Screen.GROWTH -> growthCrop
@@ -54,8 +55,8 @@ fun ReferenceCrop(
  BoxWithConstraints(
   modifier=modifier.clip(RoundedCornerShape(radius.dp))
  ){
-  val fullW=maxWidth*(1024f/crop.w.toFloat())
-  val fullH=maxHeight*(1400f/crop.h.toFloat())
+  val fullW=maxWidth*(1672f/crop.w.toFloat())
+  val fullH=maxHeight*(941f/crop.h.toFloat())
   val offsetX=-(maxWidth*(crop.x.toFloat()/crop.w.toFloat()))
   val offsetY=-(maxHeight*(crop.y.toFloat()/crop.h.toFloat()))
   Image(
