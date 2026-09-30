@@ -1,0 +1,153 @@
+--- a/app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
++++ b/app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
+@@ -63,25 +63,19 @@
+                 y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
+             }
+             y = drawOwnerBand(page.canvas, y, ownerName, ownerTrucks.size, ownerIndex)
+-            ownerTrucks.sortedWith(compareBy<Truck>({ it.cargoTitle }, { it.partTitle }, { it.parkingQueue.takeIf { q -> q > 0 } ?: Int.MAX_VALUE })).forEach { t ->
+-                if (y > 700f) {
++            y = drawReportTableHeader(page.canvas, y, ownerIndex)
++            ownerTrucks.sortedWith(compareBy<Truck>({ it.cargoTitle }, { it.partTitle }, { it.parkingQueue.takeIf { q -> q > 0 } ?: Int.MAX_VALUE })).forEachIndexed { rowIndex, t ->
++                if (y > 720f) {
++                    drawFooter(page.canvas, pageNo, "گزارش ماهانه")
+                     pdf.finishPage(page); pageNo++
+                     page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
+                     y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
+                     y = drawOwnerBand(page.canvas, y, ownerName, ownerTrucks.size, ownerIndex)
++                    y = drawReportTableHeader(page.canvas, y, ownerIndex)
+                 }
+-                val queue = if (t.parkingQueue > 0) Formatters.number(t.parkingQueue) else "-"
+-                val part = t.partTitle.takeIf { it.isNotBlank() }?.let { " | پارت $it" } ?: ""
+-                y = drawRtl(page.canvas, "پلاک ${t.plate} | ${t.cargoTitle}$part", y + 2f, 11.2f, true)
+-                y = drawRtl(page.canvas, "وزن ${Formatters.weightKg(t.weightKg)} | سایز ${t.size.ifBlank { "-" }} | بندل ${Formatters.number(t.bundleCount)} | نوبت $queue", y, 9.8f, false)
+-                y = drawStatusBand(page.canvas, y, truckStatusLabel(t), t.status, t.disposition)
+-                val customs = if (t.declarationType == DeclarationType.COMPANY) {
+-                    "اظهار شرکت"
+-                } else {
+-                    "کوتاژ: ${t.cottageNumber.ifBlank { "صادر نشده" }} | کارشناسی: ${if (t.expertCheckedAt != null) "شده" else "نشده"} | خروج انبار: ${if (t.warehouseExitAt != null) "خورده" else "نخورده"}"
+-                }
+-                y = drawRtl(page.canvas, customs, y, 9.4f, false)
+-                y = drawDivider(page.canvas, y + 1f)
++                val cottage = if (t.declarationType == DeclarationType.COMPANY) "اظهار شرکت" else t.cottageNumber.ifBlank { "صادر نشده" }
++                val customs = if (t.declarationType == DeclarationType.COMPANY) "اظهار شرکت" else "کارشناس ${if (t.expertCheckedAt != null) "✓" else "✕"}\nخروج انبار ${if (t.warehouseExitAt != null) "✓" else "✕"}"
++                y = drawReportTableRow(page.canvas, y, t, truckStatusLabel(t).removePrefix("وضعیت: "), t.status, t.disposition, cottage, customs, ownerIndex, rowIndex)
+             }
+             y += 3f
+         }
+@@ -225,26 +219,25 @@
+                     y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
+                 }
+                 y = drawOwnerBand(page.canvas, y, ownerName, list.size, ownerIndex)
+-                list.sortedWith(compareBy<CargoDayJourney>({ it.truck.cargoTitle }, { it.truck.partTitle }, { it.truck.parkingQueue.takeIf { q -> q > 0 } ?: Int.MAX_VALUE })).forEach { j ->
+-                    if (y > 690f) {
++                y = drawReportTableHeader(page.canvas, y, ownerIndex)
++                list.sortedWith(compareBy<CargoDayJourney>({ it.truck.cargoTitle }, { it.truck.partTitle }, { it.truck.parkingQueue.takeIf { q -> q > 0 } ?: Int.MAX_VALUE })).forEachIndexed { rowIndex, j ->
++                    if (y > 720f) {
+                         drawFooter(page.canvas, pageNo, "گزارش روزانه")
+                         pdf.finishPage(page); pageNo++
+                         page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
+                         y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
+                         y = drawOwnerBand(page.canvas, y, ownerName, list.size, ownerIndex)
++                        y = drawReportTableHeader(page.canvas, y, ownerIndex)
+                     }
+                     val t = j.truck
+-                    val part = t.partTitle.takeIf { it.isNotBlank() }?.let { " | پارت $it" } ?: ""
+-                    val queue = if (t.parkingQueue > 0) " | نوبت ${Formatters.number(t.parkingQueue)}" else ""
+-                    y = drawRtl(page.canvas, "پلاک ${t.plate} | ${t.cargoTitle}$part$queue", y + 2f, 11.2f, true)
+-                    y = drawRtl(page.canvas, "مشخصات: وزن ${Formatters.weightKg(t.weightKg)} | سایز ${t.size.ifBlank { "-" }} | بندل ${Formatters.number(t.bundleCount)}", y, 9.7f, false)
+-                    y = drawStatusBand(page.canvas, y, "وضعیت پایان روز: ${j.endStateText}", j.statusAtEnd, j.dispositionAtEnd)
+-                    y = drawRtl(page.canvas, j.customsText, y, 9.5f, false)
+-                    if (j.eventSummary != "بدون تغییر") y = drawRtl(page.canvas, "روند امروز: ${j.eventSummary}", y, 9.3f, false)
+-                    if (t.followUpNote.isNotBlank() && j.dispositionAtEnd == CargoDisposition.STORED_IRAN) {
+-                        y = drawRtl(page.canvas, "پیگیری: ${t.followUpNote}", y, 9.3f, false)
++                    val cottage = if (t.declarationType == DeclarationType.COMPANY) "اظهار شرکت" else if (j.cottageKnownAtEnd) j.cottageNumberAtEnd.ifBlank { "ثبت شده" } else "صادر نشده"
++                    val customs = if (t.declarationType == DeclarationType.COMPANY) "اظهار شرکت" else "کارشناس ${if (j.expertCheckedAtEnd) "✓" else "✕"}\nخروج انبار ${if (j.warehouseExitAtEnd) "✓" else "✕"}"
++                    val statusText = when (j.dispositionAtEnd) {
++                        CargoDisposition.RETURNED -> "برگشتی"
++                        CargoDisposition.STORED_IRAN -> "انبار ایران"
++                        CargoDisposition.EXPORT_FLOW -> j.endStateText
+                     }
+-                    y = drawDivider(page.canvas, y + 1f)
++                    y = drawReportTableRow(page.canvas, y, t, statusText, j.statusAtEnd, j.dispositionAtEnd, cottage, customs, ownerIndex, rowIndex)
+                 }
+                 y += 3f
+             }
+@@ -396,6 +389,78 @@
+         Color.rgb(241, 247, 248) to Color.rgb(46, 105, 113)
+     )
+ 
++    private val reportColumnWidths = floatArrayOf(67f, 69f, 94f, 46f, 62f, 81f, 108f)
++
++    private fun drawReportTableHeader(canvas: android.graphics.Canvas, y: Float, ownerIndex: Int): Float {
++        val (bg, fg) = ownerPalette[ownerIndex % ownerPalette.size]
++        val h = 29f
++        var right = PAGE_W - MARGIN
++        val labels = listOf("پلاک", "نوع بار", "مشخصات ماشین", "نوبت", "کوتاژ", "وضعیت", "گمرک")
++        labels.forEachIndexed { i, label ->
++            val w = reportColumnWidths[i]
++            val left = right - w
++            canvas.drawRect(left, y, right, y + h, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = bg })
++            drawCellText(canvas, label, left + 2f, y + 7f, w - 4f, 8f, true, fg, 1)
++            canvas.drawLine(left, y, left, y + h, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(70, 80, 70, 110); strokeWidth = .7f })
++            right = left
++        }
++        canvas.drawRect(MARGIN, y, PAGE_W - MARGIN, y + h, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = Color.rgb(222, 218, 231); strokeWidth = .8f })
++        return y + h
++    }
++
++    private fun drawReportTableRow(
++        canvas: android.graphics.Canvas, y: Float, t: Truck, statusText: String, status: CargoStatus,
++        disposition: CargoDisposition, cottage: String, customs: String, ownerIndex: Int, rowIndex: Int
++    ): Float {
++        val h = 57f
++        val ownerBg = ownerPalette[ownerIndex % ownerPalette.size].first
++        val rowBg = if (rowIndex % 2 == 0) Color.WHITE else blendColor(ownerBg, Color.WHITE, .58f)
++        canvas.drawRect(MARGIN, y, PAGE_W - MARGIN, y + h, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = rowBg })
++        val part = if (t.partTitle.isNotBlank()) "\nپارت ${t.partTitle}" else ""
++        val values = listOf(
++            t.plate,
++            t.cargoTitle + part,
++            "${Formatters.weightKg(t.weightKg)}\nسایز ${t.size.ifBlank { "-" }} • بندل ${Formatters.number(t.bundleCount)}",
++            if (t.parkingQueue > 0) Formatters.number(t.parkingQueue) else "-",
++            cottage, statusText, customs
++        )
++        val (statusBg, statusFg) = statusColors(status, disposition)
++        var right = PAGE_W - MARGIN
++        values.forEachIndexed { i, value ->
++            val w = reportColumnWidths[i]
++            val left = right - w
++            if (i == 5) canvas.drawRoundRect(RectF(left + 3f, y + 5f, right - 3f, y + h - 5f), 8f, 8f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = statusBg })
++            drawCellText(canvas, value, left + 3f, y + 8f, w - 6f, if (i == 2 || i == 6) 7f else 7.7f, i == 0 || i == 5, if (i == 5) statusFg else Color.rgb(35, 31, 52), if (i == 2 || i == 6) 3 else 2)
++            canvas.drawLine(left, y, left, y + h, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(225, 222, 233); strokeWidth = .65f })
++            right = left
++        }
++        canvas.drawRect(MARGIN, y, PAGE_W - MARGIN, y + h, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = Color.rgb(225, 222, 233); strokeWidth = .8f })
++        return y + h
++    }
++
++    private fun drawCellText(canvas: android.graphics.Canvas, text: String, left: Float, top: Float, width: Float, size: Float, bold: Boolean, color: Int, maxLines: Int) {
++        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
++            this.color = color; textSize = size
++            typeface = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
++        }
++        val layout = StaticLayout.Builder.obtain(text, 0, text.length, paint, width.toInt().coerceAtLeast(1))
++            .setAlignment(Layout.Alignment.ALIGN_CENTER)
++            .setTextDirection(TextDirectionHeuristics.RTL)
++            .setMaxLines(maxLines)
++            .setLineSpacing(0f, 1.02f)
++            .build()
++        canvas.save(); canvas.translate(left, top); layout.draw(canvas); canvas.restore()
++    }
++
++    private fun blendColor(a: Int, b: Int, bWeight: Float): Int {
++        val aw = 1f - bWeight
++        return Color.rgb(
++            (Color.red(a) * aw + Color.red(b) * bWeight).toInt(),
++            (Color.green(a) * aw + Color.green(b) * bWeight).toInt(),
++            (Color.blue(a) * aw + Color.blue(b) * bWeight).toInt()
++        )
++    }
++
+     private fun drawOwnerBand(canvas: android.graphics.Canvas, y: Float, ownerName: String, count: Int, index: Int): Float {
+         val (bg, fg) = ownerPalette[index % ownerPalette.size]
+         val h = 31f
