@@ -11,7 +11,8 @@ on:
       - "border-manager-v1.4/**"
       - "border-manager-v1.5/**"
       - "border-manager-v1.6/**"
-      - "border-manager-v1.7/**"\n      - "border-manager-v1.9/**"
+      - "border-manager-v1.7/**"
+      - "border-manager-v1.9/**"
       - ".github/workflows/build-border-manager-v1.7.yml"
 
 jobs:
