@@ -250,6 +250,11 @@ jobs:
           cp border-manager-v1.9/pdf-dashboard-v1.9.patch /tmp/pdf-dashboard-v1.9.patch
           cd build-src
           patch -p1 < /tmp/pdf-dashboard-v1.9.patch
+          mkdir -p app/src/main/assets/fonts
+          curl --fail --location --retry 3 --retry-all-errors \\
+            -o app/src/main/assets/fonts/BYekan.ttf \\
+            https://raw.githubusercontent.com/Aseman-Land/Meikade/1d7101c966c9aabec85dd10d56a0916c0ac6fe5f/qml/imports/globals/fonts/BYekan.ttf
+          test -s app/src/main/assets/fonts/BYekan.ttf
           sed -i 's/versionCode = 180/versionCode = 190/' app/build.gradle.kts
           sed -i 's/versionName = "1.8.0"/versionName = "1.9.0"/' app/build.gradle.kts
           grep -q 'versionName = "1.9.0"' app/build.gradle.kts
