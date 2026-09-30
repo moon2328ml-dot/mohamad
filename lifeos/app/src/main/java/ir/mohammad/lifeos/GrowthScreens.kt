@@ -127,7 +127,7 @@ fun AnalysisScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
 @Composable
 fun ScoreSlider(label:String,value:Float,onChange:(Float)->Unit){
  Row{Text(label,Modifier.weight(1f),fontWeight=FontWeight.Bold);Text(value.toInt().toString()+"/10",color=Gold,fontWeight=FontWeight.Bold)}
- Slider(value,onValueChange,valueRange=1f..10f,steps=8,colors=SliderDefaults.colors(thumbColor=Gold,activeTrackColor=Gold))
+ Slider(value=value,onValueChange=onChange,valueRange=1f..10f,steps=8,colors=SliderDefaults.colors(thumbColor=Gold,activeTrackColor=Gold))
 }
 
 @Composable
