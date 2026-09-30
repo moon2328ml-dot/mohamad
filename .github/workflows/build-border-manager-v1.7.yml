@@ -1,4 +1,4 @@
-name: Build BorderManager v1.8
+name: Build BorderManager v1.9
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ on:
       - "border-manager-v1.4/**"
       - "border-manager-v1.5/**"
       - "border-manager-v1.6/**"
-      - "border-manager-v1.7/**"
+      - "border-manager-v1.7/**"\n      - "border-manager-v1.9/**"
       - ".github/workflows/build-border-manager-v1.7.yml"
 
 jobs:
@@ -242,6 +242,19 @@ jobs:
           grep -q 'versionName = "1.8.0"' app/build.gradle.kts
           grep -q 'private const val DB_VERSION = 6' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
 
+      - name: Apply v1.9 exact dashboard PDF design
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d border-manager-v1.9/pdf-dashboard-v1.9.patch.b64 > /tmp/pdf-dashboard-v1.9.patch
+          cd build-src
+          patch -p1 < /tmp/pdf-dashboard-v1.9.patch
+          sed -i 's/versionCode = 180/versionCode = 190/' app/build.gradle.kts
+          sed -i 's/versionName = "1.8.0"/versionName = "1.9.0"/' app/build.gradle.kts
+          grep -q 'versionName = "1.9.0"' app/build.gradle.kts
+          grep -q 'drawReportTableHeader' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
+          grep -q 'private const val DB_VERSION = 6' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -276,26 +289,26 @@ jobs:
           test -f build-src/app/build/outputs/apk/debug/app-debug.apk
           test -f build-src/app/build/outputs/apk/release/app-release-unsigned.apk
           test -f "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar"
-          cp build-src/app/build/outputs/apk/debug/app-debug.apk BorderManager-v1.8.0-debug.apk
-          cp build-src/app/build/outputs/apk/release/app-release-unsigned.apk BorderManager-v1.8.0-release-unsigned.apk
+          cp build-src/app/build/outputs/apk/debug/app-debug.apk BorderManager-v1.9.0-debug.apk
+          cp build-src/app/build/outputs/apk/release/app-release-unsigned.apk BorderManager-v1.9.0-release-unsigned.apk
           cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" apksigner.jar
-          tar -czf BorderManager-v1.8.0-source.tar.gz -C build-src .
-          sha256sum BorderManager-v1.8.0-debug.apk BorderManager-v1.8.0-release-unsigned.apk BorderManager-v1.8.0-source.tar.gz
+          tar -czf BorderManager-v1.9.0-source.tar.gz -C build-src .
+          sha256sum BorderManager-v1.9.0-debug.apk BorderManager-v1.9.0-release-unsigned.apk BorderManager-v1.9.0-source.tar.gz
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: BorderManager-v1.8.0-debug
-          path: BorderManager-v1.8.0-debug.apk
+          name: BorderManager-v1.9.0-debug
+          path: BorderManager-v1.9.0-debug.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload release signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: BorderManager-v1.8.0-release-tools
+          name: BorderManager-v1.9.0-release-tools
           path: |
-            BorderManager-v1.8.0-release-unsigned.apk
+            BorderManager-v1.9.0-release-unsigned.apk
             apksigner.jar
           if-no-files-found: error
           retention-days: 30
@@ -303,7 +316,7 @@ jobs:
       - name: Upload source
         uses: actions/upload-artifact@v4
         with:
-          name: BorderManager-v1.8.0-source
-          path: BorderManager-v1.8.0-source.tar.gz
+          name: BorderManager-v1.9.0-source
+          path: BorderManager-v1.9.0-source.tar.gz
           if-no-files-found: error
           retention-days: 30
