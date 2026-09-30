@@ -122,7 +122,7 @@
 +        // The report is still sourced from the daily journey data, but the PDF is grouped
 +        // and color-coded like the approved reference instead of the old text-only timeline.
 +        val trucks = dailyGroups.flatMap { it.second.map { journey -> journey.truck } }.distinctBy { it.id }
-+        return monthlyReport(context, Jalali.now().year, Jalali.now().month, borderTitle, trucks, emptyList())
++        return monthlyReport(context, Jalali.now().date.year, Jalali.now().date.month, borderTitle, trucks, emptyList())
      }
  
      fun statusReport(
