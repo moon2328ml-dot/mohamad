@@ -247,7 +247,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 -d border-manager-v1.9/pdf-dashboard-v1.9.patch.b64 > /tmp/pdf-dashboard-v1.9.patch
+          cp border-manager-v1.9/pdf-dashboard-v1.9.patch /tmp/pdf-dashboard-v1.9.patch
           cd build-src
           patch -p1 < /tmp/pdf-dashboard-v1.9.patch
           sed -i 's/versionCode = 180/versionCode = 190/' app/build.gradle.kts
