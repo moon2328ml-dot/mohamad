@@ -207,6 +207,8 @@ jobs:
           gunzip -c /tmp/border-manager-v1.7.patch.gz > /tmp/border-manager-v1.7.patch
           cd build-src
           patch -p1 < /tmp/border-manager-v1.7.patch
+          sed -i 's/drawStatusBand(page.canvas, "وضعیت پایان روز:/drawStatusBand(page.canvas, y, "وضعیت پایان روز:/' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
+          sed -i 's/drawStatusBand(page.canvas, truckStatusLabel(t),/drawStatusBand(page.canvas, y, truckStatusLabel(t),/' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
           grep -q 'versionName = "1.7.0"' app/build.gradle.kts
           grep -q 'private const val DB_VERSION = 6' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
           grep -q '"call_batches"' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
