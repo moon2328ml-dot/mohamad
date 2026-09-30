@@ -26,6 +26,7 @@ fun FinanceScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
  val alloc=listOf("ضروریات" to 35,"اقساط/تعهدات" to 15,"سرمایه‌گذاری" to 15,"پس‌انداز اضطراری" to 10,"رابطه/دیت/رفت‌وآمد" to 8,"باشگاه و رشد" to 7,"تفریح شخصی" to 5,"ذخیره آزاد" to 5)
  Page("مدیریت درآمد",onBack){
   LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=30.dp)){
+   item{FeatureHero(Screen.FINANCE,"موفقیت مالی","درآمد • سرمایه‌گذاری • مدیریت خرج • هوش مالی")}
    item{
     SectionTitle("درآمد این ماه","عدد را وارد کن؛ اپ سهم هر بخش را برایت حساب می‌کند.")
     Row(verticalAlignment=Alignment.CenterVertically){
@@ -90,6 +91,7 @@ fun DebtScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
  var total by remember{mutableStateOf("")};var paid by remember{mutableStateOf("")};var monthly by remember{mutableStateOf("")};var due by remember{mutableStateOf("")}
  Page("مسیر آزادی مالی",onBack){
   LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=25.dp)){
+   item{FeatureHero(Screen.DEBTS,"مسیر آزادی مالی","اقساط • تعهدات • پیشرفت پرداخت • آرامش مالی")}
    item{
     val remain=list.sumOf{(it.total-it.paid).coerceAtLeast(0)}
     GoldCard{Text("تمرکز روی پیشرفت، نه اضطراب",fontWeight=FontWeight.ExtraBold);Text("مانده تعهدات ثبت‌شده: "+money(remain),color=Gold,fontWeight=FontWeight.Bold)}
@@ -127,9 +129,10 @@ fun BodyScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
  var w by remember{mutableStateOf("")};var target by remember{mutableStateOf(store.targetWeight.toString())}
  var foods by remember{mutableStateOf(store.loadFoods().reversed())};var food by remember{mutableStateOf("")};var cal by remember{mutableStateOf("")};var protein by remember{mutableStateOf("")}
  var workouts by remember{mutableStateOf(store.items("workout"))}
- LaunchedEffect(Unit){if(workouts.isEmpty()){listOf("اسکوات 3×10","پرس سینه/شنا 3×10","قایقی/لت 3×10","پرس سرشانه 3×10","حرکت پشت پا 3×10","پلانک 3 ست").forEach{store.addItem(SimpleItem(title=it,group="workout"))};workouts=store.items("workout")}}
+ var workoutText by remember{mutableStateOf("")}
  Page("سلامت، غذا و باشگاه",onBack){
   LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=30.dp)){
+   item{FeatureHero(Screen.BODY,"سلامت و بدن","تغذیه • برنامه غذایی • خواب • انرژی • باشگاه")}
    item{
     SectionTitle("کنترل وزن","عدد روزانه را ثبت کن؛ روند مهم‌تر از بالا و پایین یک روز است.")
     Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){
@@ -155,7 +158,17 @@ fun BodyScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
     Text("امروز: "+ft.sumOf{it.calories}+" kcal  •  "+ft.sumOf{it.protein}+" g پروتئین",fontWeight=FontWeight.Bold,color=Gold,modifier=Modifier.padding(top=8.dp))
    }
    items(foods.take(10),key={it.id}){x->GlassCard{Row(Modifier.fillMaxWidth()){Text(x.name,Modifier.weight(1f));Text(x.calories.toString()+" kcal • "+x.protein+"g",fontWeight=FontWeight.Bold);TextButton(onClick={store.deleteFood(x.id);foods=store.loadFoods().reversed();onChange()}){Text("×")}}}}
-   item{SectionTitle("روتین باشگاه","شروع ساده فول‌بادی؛ وزنه را سبک بگیر و فرم صحیح را اولویت بده.")}
+   item{
+    SectionTitle("برنامه باشگاه","حرکت‌ها را خودت اضافه کن؛ هیچ برنامه‌ای از قبل به تو تحمیل نمی‌شود.")
+    GlassCard{
+     Row(verticalAlignment=Alignment.CenterVertically){
+      OutlinedTextField(workoutText,{workoutText=it},label={Text("حرکت یا برنامه جدید")},modifier=Modifier.weight(1f),singleLine=true)
+      Spacer(Modifier.width(7.dp))
+      Button(onClick={if(workoutText.isNotBlank()){store.addItem(SimpleItem(title=workoutText.trim(),group="workout"));workoutText="";workouts=store.items("workout");onChange()}},colors=ButtonDefaults.buttonColors(containerColor=Gold,contentColor=Ink)){Text("+")}
+     }
+     if(workouts.isEmpty()) Text("هنوز حرکت یا برنامه‌ای نساختی.",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=8.dp))
+    }
+   }
    items(workouts,key={it.id}){x->Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Checkbox(x.done,{store.toggleItem(x.id);workouts=store.items("workout");onChange()},colors=CheckboxDefaults.colors(checkedColor=Gold));Text(x.title,Modifier.weight(1f))}}
   }
  }
@@ -167,6 +180,7 @@ fun InvestmentScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
  var goal by remember{mutableStateOf("")};var goals by remember{mutableStateOf(store.items("investment_goal"))}
  Page("عادت سرمایه‌گذاری",onBack){
   LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=25.dp)){
+   item{FeatureHero(Screen.INVESTMENT,"سرمایه‌گذاری من","طلا • ارز • دارایی • عادت سرمایه‌گذاری")}
    item{GoldCard{Text("قاعده شخصی",fontWeight=FontWeight.ExtraBold);Text("هر ماه اول سهم سرمایه را کنار بگذار؛ بعد سراغ خرج آزاد برو.",color=Muted)}}
    item{
     SectionTitle("ثبت سرمایه‌گذاری")
@@ -190,6 +204,7 @@ fun RelationshipScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
  var type by remember{mutableStateOf("دیدار")};var note by remember{mutableStateOf("")};var amount by remember{mutableStateOf("")};var emotion by remember{mutableFloatStateOf(7f)}
  Page("رابطه من",onBack){
   LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=25.dp)){
+   item{FeatureHero(Screen.RELATIONSHIP,"روابط عاطفی","رابطه سالم • ارتباط • دیدار • هزینه • حل تعارض")}
    item{
     GoldCard{Text("هدف این بخش: رابطه قوی‌تر، نه کنترل آدم مقابل",fontWeight=FontWeight.ExtraBold);Text("رفتار خودت، بحث‌ها، دیدارها و هزینه‌ها را ثبت کن تا الگوها دیده شوند.",color=Muted)}
    }
