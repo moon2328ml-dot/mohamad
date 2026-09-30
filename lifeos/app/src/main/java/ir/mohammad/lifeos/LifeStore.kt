@@ -6,7 +6,8 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.util.UUID
 
-data class SimpleItem(val id:String=UUID.randomUUID().toString(),val title:String,val group:String,val done:Boolean=false,val value:Double=0.0,val date:String=LocalDate.now().toString())\ndata class RoutineEntry(val id:String=UUID.randomUUID().toString(),val title:String,val time:String,val done:Boolean=false,val color:Int=0,val date:String=LocalDate.now().toString())
+data class SimpleItem(val id:String=UUID.randomUUID().toString(),val title:String,val group:String,val done:Boolean=false,val value:Double=0.0,val date:String=LocalDate.now().toString())
+data class RoutineEntry(val id:String=UUID.randomUUID().toString(),val title:String,val time:String,val done:Boolean=false,val color:Int=0,val date:String=LocalDate.now().toString())
 data class MoneyEntry(val id:String=UUID.randomUUID().toString(),val kind:String,val category:String,val amount:Long,val note:String="",val date:String=LocalDate.now().toString())
 data class WeightEntry(val id:String=UUID.randomUUID().toString(),val weight:Double,val date:String=LocalDate.now().toString())
 data class FoodEntry(val id:String=UUID.randomUUID().toString(),val name:String,val calories:Int,val protein:Int,val date:String=LocalDate.now().toString())
