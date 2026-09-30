@@ -217,14 +217,6 @@ jobs:
           grep -q 'گزارش ماهانه وضعیت بار' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
           grep -q 'drawOwnerBand' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
 
-      - name: Diagnose v1.7 PDF source
-        shell: bash
-        run: |
-          set -euo pipefail
-          grep -n -A12 -B8 'drawStatus' build-src/app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt || true
-          nl -ba build-src/app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt | sed -n '230,250p;350,375p'
-          exit 1
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
