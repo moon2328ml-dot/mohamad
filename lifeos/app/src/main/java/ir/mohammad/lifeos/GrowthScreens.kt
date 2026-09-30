@@ -1,173 +1,617 @@
 package ir.mohammad.lifeos
 
 import android.content.Context
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
 fun AttractionScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
- val teachers=listOf(
-  "ناپلئون هیل" to "هدف دقیق، ایمان، تلقین، تصمیم، پشتکار، Mastermind",
-  "کوین ترودو" to "Teachability Index، ورودی‌های ذهنی و تمرکز روی خواسته",
-  "نویل گادرد" to "فرض، تصویر نتیجه نهایی، SATS و Revision",
-  "ابراهام هیکس" to "راهنمای هیجانی و توجه به حالت درونی",
-  "روندا برن" to "خواستن، باور، دریافت، شکرگزاری و تجسم",
-  "باب پراکتور" to "پارادایم، Goal Card و تغییر الگوهای ذهنی",
-  "لوئیز هی" to "گفت‌وگوی درونی، تأییدها و Mirror Work",
-  "وین دایر" to "نیت، معنا و همسویی با تصویری که می‌سازی",
-  "جو دیسپنزا" to "مدیتیشن، تجسم و تمرین هویت آینده",
-  "عباس منش" to "باورهای مالی، فراوانی و رزق",
-  "محمد بصیری" to "باور مالی، هدف، چرایی و تصویرسازی",
-  "امیر همتی" to "لیاقت، ترس، گفت‌وگوی درونی و ثروت"
- )
- var text by remember{mutableStateOf("")}
- var list by remember{mutableStateOf(store.journals("manifestation"))}
- Page("آکادمی قانون جذب",onBack){
-  LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=30.dp)){
-   item{GoldCard{Text("مسیر چندساله باور → تمرین → اقدام → نتیجه",fontWeight=FontWeight.ExtraBold);Text("این بخش آموزه‌های مکاتب مورد علاقه‌ات را جدا نگه می‌دارد تا بعداً «متد محمد» از تجربه‌های خودت ساخته شود.",color=Muted)}}
-   item{SectionTitle("کتابخانه استادها","هر مکتب ابزارهای خودش را دارد؛ قرار نیست همه را یکی فرض کنیم.")}
-   items(teachers){(n,d)->Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(16.dp)){Column(Modifier.fillMaxWidth().padding(12.dp)){Text(n,fontWeight=FontWeight.ExtraBold);Text(d,color=Muted,fontSize=12.sp)}}}
-   item{
-    SectionTitle("تمرین امروز","خواسته، باور، تصویر، اقدام و شواهد را بنویس.")
-    OutlinedTextField(text,{text=it},modifier=Modifier.fillMaxWidth().height(140.dp),placeholder={Text("مثلاً: خواسته من چیست؟ مانع ذهنی من چیست؟ امروز چه اقدام همسویی انجام می‌دهم؟")})
-    Spacer(Modifier.height(7.dp));PrimaryButton("ثبت در دفتر جذب"){if(text.isNotBlank()){store.addJournal(JournalEntry(kind="manifestation",text=text));text="";list=store.journals("manifestation");onChange()}}
-   }
-   items(list.take(20),key={it.id}){x->GoldCard{Text(x.date,color=Gold,fontSize=11.sp);Text(x.text)}}
-  }
- }
+    val teachers=listOf(
+        "ناپلئون هیل" to "هدف دقیق، ایمان، تصمیم، پشتکار و Mastermind",
+        "کوین ترودو" to "Teachability Index و مدیریت ورودی‌های ذهنی",
+        "نویل گادرد" to "فرض نتیجه نهایی، SATS و Revision",
+        "ابراهام هیکس" to "راهنمای هیجانی و توجه به حالت درونی",
+        "روندا برن" to "خواستن، باور، دریافت، شکرگزاری و تجسم",
+        "باب پراکتور" to "پارادایم، Goal Card و تغییر الگوهای ذهنی",
+        "لوئیز هی" to "گفت‌وگوی درونی، تأییدها و Mirror Work",
+        "وین دایر" to "نیت، معنا و همسویی با تصویر آینده",
+        "جو دیسپنزا" to "مدیتیشن، تجسم و تمرین هویت آینده",
+        "عباس منش" to "باورهای مالی، فراوانی و رزق",
+        "محمد بصیری" to "باور مالی، هدف، چرایی و تصویرسازی",
+        "امیر همتی" to "لیاقت، ترس، گفت‌وگوی درونی و ثروت"
+    )
+    var tab by remember { mutableIntStateOf(0) }
+    var note by remember { mutableStateOf("") }
+    var journal by remember { mutableStateOf(store.journals("manifestation")) }
+
+    Page("قانون جذب",onBack){
+        LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=28.dp)){
+            item{
+                GlassCard(strong=true){
+                    Row(verticalAlignment=Alignment.CenterVertically){
+                        CosmicOrb(Modifier.size(78.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)){
+                            Text("آکادمی قانون جذب",fontWeight=FontWeight.ExtraBold,fontSize=20.sp,color=Gold)
+                            Text("آموزش • تمرین • پروژه خواسته‌ها • دفتر شواهد",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+            item{
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                    listOf("اساتید","تمرین‌ها","پروژه‌ها").forEachIndexed{i,t->
+                        FilterChip(
+                            selected=tab==i,
+                            onClick={tab=i},
+                            label={Text(t)},
+                            modifier=Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            if(tab==0){
+                items(teachers){entry->
+                    GlassCard{
+                        Row(verticalAlignment=Alignment.CenterVertically){
+                            Box(
+                                Modifier.size(46.dp).clip(CircleShape)
+                                    .background(Brush.radialGradient(listOf(Gold,GoldDeep,Ink))),
+                                contentAlignment=Alignment.Center
+                            ){
+                                Text(entry.first.take(1),color=Color.White,fontWeight=FontWeight.ExtraBold,fontSize=18.sp)
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)){
+                                Text(entry.first,fontWeight=FontWeight.ExtraBold)
+                                Text(entry.second,fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text("▶",color=Gold)
+                        }
+                    }
+                }
+            } else if(tab==1){
+                item{
+                    GlassCard{
+                        Text("تمرین امروز",fontWeight=FontWeight.ExtraBold,color=Gold)
+                        Text("خواسته → باور فعلی → تصویر نتیجه → احساس → اقدام امروز → شواهد",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            note,{note=it},
+                            modifier=Modifier.fillMaxWidth().height(145.dp),
+                            placeholder={Text("تمرین امروز را بنویس…")}
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        PrimaryButton("ثبت در دفتر جذب"){
+                            if(note.isNotBlank()){
+                                store.addJournal(JournalEntry(kind="manifestation",text=note.trim()))
+                                note=""
+                                journal=store.journals("manifestation")
+                                onChange()
+                            }
+                        }
+                    }
+                }
+                items(journal.take(20),key={it.id}){row->
+                    GlassCard{
+                        Text(row.date,color=Gold,fontSize=10.sp)
+                        Text(row.text)
+                    }
+                }
+            } else {
+                item{
+                    GlassCard{
+                        Text("پروژه خواسته‌ها",fontWeight=FontWeight.ExtraBold,color=Gold)
+                        Text(
+                            "هر خواسته یک پرونده مستقل دارد: چرایی، تصویر نهایی، باورهای کمک‌کننده و مخالف، تمرین، اقدام و شواهد.",
+                            fontSize=12.sp,
+                            color=MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                items(store.items("manifestation_project"),key={it.id}){x->
+                    GlassCard{
+                        Text(x.title,fontWeight=FontWeight.Bold)
+                        Text(if(x.done) "تکمیل شده" else "در جریان",color=if(x.done)Success else Gold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CosmicOrb(modifier:Modifier=Modifier){
+    Canvas(modifier){
+        val c=Offset(size.width/2,size.height/2)
+        drawCircle(
+            Brush.radialGradient(listOf(Color.White,NeonBlue,NeonPurple,Color.Transparent),center=c,radius=size.minDimension*.52f),
+            size.minDimension*.48f,c
+        )
+        drawCircle(Gold,size.minDimension*.18f,c,style=Stroke(size.minDimension*.025f))
+        drawCircle(Color.White,size.minDimension*.045f,c)
+    }
 }
 
 @Composable
 fun PowerScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
- val modules=listOf(
-  "رادار دستکاری" to "شناخت فشار، گناه‌دادن، تناقض، تحقیر و مرزشکنی بدون ذهن‌خوانی.",
-  "قاطعیت" to "نه گفتن، بیان مخالفت و درخواست حق خود بدون پرخاش.",
-  "کنترل خشم" to "محرک → فکر → شدت → مکث → پاسخ انتخابی.",
-  "زبان بدن" to "ایستادن باز، نگاه طبیعی، صدای شمرده و عجله نکردن.",
-  "مذاکره" to "سؤال دقیق، شنیدن، پیشنهاد روشن و حفظ مرز.",
-  "رهبری" to "مسئولیت، ثبات، پایبندی به قول و آرامش زیر فشار.",
-  "دفاع در برابر فریب" to "تناقض روایت و شواهد مهم‌تر از حدس از روی ژست‌هاست.",
-  "قدرت اجتماعی" to "حضور، ارتباط و اعتبار؛ نه ترساندن یا وابسته‌کردن دیگران."
- )
- var reflection by remember{mutableStateOf("")}
- Page("قدرت روانی و رهبری",onBack){
-  LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=30.dp)){
-   item{GoldCard{Text("قوی باش، قابل‌بازی نباش",fontWeight=FontWeight.ExtraBold,fontSize=18.sp);Text("قدرت اینجا یعنی کنترل خود، مرزبندی، استراتژی و تشخیص بازی روانی؛ نه تحقیر و کنترل آدم‌ها.",color=Muted)}}
-   items(modules){(n,d)->Card(colors=CardDefaults.cardColors(containerColor=Color.White),shape=RoundedCornerShape(16.dp)){Column(Modifier.fillMaxWidth().padding(13.dp)){Text(n,fontWeight=FontWeight.ExtraBold);Text(d,color=Muted,fontSize=12.sp)}}}
-   item{
-    SectionTitle("Red Team من","یک موقعیت سخت امروز را بازسازی کن.")
-    OutlinedTextField(reflection,{reflection=it},modifier=Modifier.fillMaxWidth().height(130.dp),placeholder={Text("چه شد؟ چه چیزی تحریکم کرد؟ پاسخ قدرتمند و کنترل‌شده چه می‌توانست باشد؟")})
-    Spacer(Modifier.height(7.dp));PrimaryButton("ثبت تمرین"){if(reflection.isNotBlank()){store.addJournal(JournalEntry(kind="power",text=reflection));reflection="";onChange()}}
-   }
-  }
- }
+    val modules=listOf(
+        "شناخت رفتارهای پنهان" to "الگوهای فشار، گناه‌دادن، تناقض، تحقیر و مرزشکنی را ثبت و بررسی کن.",
+        "تشخیص دستکاری" to "روی شواهد، تناقض روایت و درخواست واقعی طرف مقابل تمرکز کن.",
+        "نفوذ و اقناع سالم" to "شفاف حرف بزن، ارزش پیشنهاد را توضیح بده و حق انتخاب طرف مقابل را حفظ کن.",
+        "زبان بدن و ذهن" to "ایستادن باز، نگاه طبیعی، صدای شمرده و عجله نکردن.",
+        "قاطعیت و مرزبندی" to "نه گفتن، مخالفت محترمانه و دفاع از حق خود بدون پرخاش.",
+        "کنترل احساس دیگران؟ نه" to "هدف این بخش کنترل خود و تشخیص فشار است، نه وابسته‌کردن یا ترساندن دیگران.",
+        "قدرت اجتماعی و کاری" to "شبکه‌سازی، مذاکره، بیان ارزش و آرامش زیر فشار.",
+        "رهبری و مسئولیت" to "ثبات، تصمیم روشن، شنیدن و پایبندی به قول."
+    )
+    var tab by remember { mutableIntStateOf(0) }
+    var text by remember { mutableStateOf("") }
+
+    Page("روانشناسی سیاه",onBack){
+        LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=28.dp)){
+            item{
+                Box(
+                    Modifier.fillMaxWidth().height(190.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Brush.verticalGradient(listOf(Color(0xFF1A0829),Color(0xFF050609))))
+                        .border(1.5.dp,Gold,RoundedCornerShape(24.dp))
+                ){
+                    DarkPowerFigure(Modifier.fillMaxSize())
+                    Column(Modifier.fillMaxSize().padding(14.dp),verticalArrangement=Arrangement.Bottom){
+                        Text("قوی باش، قابل‌بازی نباش",color=Gold,fontWeight=FontWeight.ExtraBold,fontSize=20.sp)
+                        Text("شناخت انسان • دفاع در برابر دستکاری • قدرت اجتماعی",color=Color.White.copy(.86f),fontSize=11.sp)
+                    }
+                }
+            }
+            item{
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                    listOf("آموزش","تکنیک‌ها","سناریوها").forEachIndexed{i,t->
+                        FilterChip(tab==i,{tab=i},{Text(t)},modifier=Modifier.weight(1f))
+                    }
+                }
+            }
+            if(tab<2){
+                items(modules){entry->
+                    GlassCard{
+                        Text(entry.first,fontWeight=FontWeight.ExtraBold)
+                        Text(entry.second,fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                item{
+                    GlassCard{
+                        Text("Red Team من",fontWeight=FontWeight.ExtraBold,color=Gold)
+                        Text("یک موقعیت سخت را بازسازی کن و پاسخ آرام، روشن و مرزبندی‌شده خودت را بنویس.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            text,{text=it},
+                            modifier=Modifier.fillMaxWidth().height(135.dp),
+                            placeholder={Text("سناریو و پاسخ انتخابی…")}
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        PrimaryButton("ثبت تمرین"){
+                            if(text.isNotBlank()){
+                                store.addJournal(JournalEntry(kind="power",text=text.trim()))
+                                text=""
+                                onChange()
+                            }
+                        }
+                    }
+                }
+                items(store.journals("power").take(20),key={it.id}){x->
+                    GlassCard{Text(x.date,color=Gold,fontSize=10.sp);Text(x.text)}
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DarkPowerFigure(modifier:Modifier=Modifier){
+    Canvas(modifier){
+        val cx=size.width*.5f
+        drawCircle(
+            Brush.radialGradient(listOf(NeonPurple.copy(.5f),Color.Transparent),center=Offset(cx,size.height*.35f),radius=size.width*.38f),
+            size.width*.38f,Offset(cx,size.height*.35f)
+        )
+        val hood=Path().apply{
+            moveTo(cx,size.height*.10f)
+            cubicTo(size.width*.29f,size.height*.25f,size.width*.27f,size.height*.60f,size.width*.34f,size.height*.85f)
+            lineTo(size.width*.66f,size.height*.85f)
+            cubicTo(size.width*.73f,size.height*.60f,size.width*.71f,size.height*.25f,cx,size.height*.10f)
+            close()
+        }
+        drawPath(hood,Color(0xFF060609))
+        drawPath(hood,Gold.copy(.42f),style=Stroke(3f))
+        drawCircle(Color(0xFF15091D),size.width*.11f,Offset(cx,size.height*.39f))
+        drawLine(NeonPink,Offset(cx-size.width*.06f,size.height*.39f),Offset(cx-size.width*.015f,size.height*.40f),4f)
+        drawLine(NeonPink,Offset(cx+size.width*.015f,size.height*.40f),Offset(cx+size.width*.06f,size.height*.39f),4f)
+        drawCircle(Gold.copy(.17f),size.width*.22f,Offset(cx,size.height*.72f))
+    }
 }
 
 @Composable
 fun SpiritualScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
- var acts by remember{mutableStateOf(store.items("spiritual"))}
- LaunchedEffect(Unit){if(acts.isEmpty()){listOf("نماز/عبادت انتخابی","دعا یا ذکر","قرآن/مطالعه معنوی","شکرگزاری","کار خیر","اتصال/تمرین معنوی شخصی").forEach{store.addItem(SimpleItem(title=it,group="spiritual"))};acts=store.items("spiritual")}}
- var note by remember{mutableStateOf("")}
- Page("من و خدا",onBack){
-  LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=30.dp)){
-   item{GoldCard{Text("مسیر معنوی من",fontWeight=FontWeight.ExtraBold);Text("اینجا نمره ایمان نمی‌گیری؛ فقط تداوم اعمال و تجربه‌های خودت را می‌بینی.",color=Muted)}}
-   item{SectionTitle("اعمال امروز")}
-   items(acts,key={it.id}){x->Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){Checkbox(x.done,{store.toggleItem(x.id);acts=store.items("spiritual");onChange()},colors=CheckboxDefaults.colors(checkedColor=Gold));Text(x.title,Modifier.weight(1f))}}
-   item{
-    SectionTitle("مسیر عرفان حلقه / فرادرمانی شخصی","برای یادگیری، تجربه معنوی و ثبت دریافت‌های شخصی؛ جایگزین مراقبت پزشکی ضروری نیست.")
-    listOf("مفاهیم پایه و واژه‌ها","شاهد و تسلیم","تمرین/اتصال شخصی","دفتر تجربه‌ها","مرور مرحله‌به‌مرحله").forEach{Text("• "+it,modifier=Modifier.padding(vertical=3.dp))}
-    OutlinedTextField(note,{note=it},modifier=Modifier.fillMaxWidth().height(120.dp),placeholder={Text("تجربه معنوی یا دریافت امروز…")})
-    Spacer(Modifier.height(7.dp));PrimaryButton("ثبت تجربه"){if(note.isNotBlank()){store.addJournal(JournalEntry(kind="spiritual_note",text=note));note="";onChange()}}
-   }
-  }
- }
+    var acts by remember { mutableStateOf(store.items("spiritual")) }
+    var newAct by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+
+    Page("معنویت و آرامش",onBack){
+        LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=28.dp)){
+            item{
+                GlassCard(strong=true){
+                    Text("من و خدا",fontWeight=FontWeight.ExtraBold,fontSize=20.sp,color=Gold)
+                    Text("اعمال معنوی را خودت انتخاب می‌کنی؛ اینجا نمره ایمان یا ارزش انسانی وجود ندارد.",fontSize=12.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            item{
+                Row(verticalAlignment=Alignment.CenterVertically){
+                    OutlinedTextField(newAct,{newAct=it},label={Text("عمل معنوی جدید")},modifier=Modifier.weight(1f),singleLine=true)
+                    Spacer(Modifier.width(7.dp))
+                    Button(
+                        onClick={
+                            if(newAct.isNotBlank()){
+                                store.addItem(SimpleItem(title=newAct.trim(),group="spiritual"))
+                                newAct=""
+                                acts=store.items("spiritual")
+                                onChange()
+                            }
+                        },
+                        colors=ButtonDefaults.buttonColors(containerColor=Gold,contentColor=Ink)
+                    ){Text("+")}
+                }
+            }
+            if(acts.isEmpty()) item{GlassCard{EmptyHint("اعمال این بخش از قبل تعیین نشده‌اند؛ خودت اضافه‌شان کن.")}}
+            items(acts,key={it.id}){x->
+                GlassCard{
+                    Row(verticalAlignment=Alignment.CenterVertically){
+                        Checkbox(
+                            x.done,
+                            {
+                                store.toggleItem(x.id)
+                                acts=store.items("spiritual")
+                                onChange()
+                            },
+                            colors=CheckboxDefaults.colors(checkedColor=Gold,checkmarkColor=Ink)
+                        )
+                        Text(x.title,Modifier.weight(1f))
+                        TextButton(onClick={
+                            store.deleteItem(x.id)
+                            acts=store.items("spiritual")
+                            onChange()
+                        }){Text("حذف",color=Danger)}
+                    }
+                }
+            }
+            item{
+                SectionTitle("دفتر تجربه معنوی")
+                GlassCard{
+                    OutlinedTextField(note,{note=it},modifier=Modifier.fillMaxWidth().height(120.dp),placeholder={Text("تجربه امروز…")})
+                    Spacer(Modifier.height(8.dp))
+                    PrimaryButton("ثبت تجربه"){
+                        if(note.isNotBlank()){
+                            store.addJournal(JournalEntry(kind="spiritual_note",text=note.trim()))
+                            note=""
+                            onChange()
+                        }
+                    }
+                }
+            }
+            item{
+                GlassCard{
+                    Text("آکادمی عرفان حلقه / فرادرمانی",fontWeight=FontWeight.Bold)
+                    Text("مسیر آموزشی شخصی برای مطالعه و ثبت تجربه‌های معنوی؛ این بخش جایگزین درمان یا مراقبت پزشکی ضروری نیست.",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun AnalysisScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
- var mood by remember{mutableFloatStateOf(7f)};var discipline by remember{mutableFloatStateOf(6f)};var confidence by remember{mutableFloatStateOf(6f)}
- var anger by remember{mutableFloatStateOf(7f)};var loneliness by remember{mutableFloatStateOf(4f)};var focus by remember{mutableFloatStateOf(6f)}
- var checkins by remember{mutableStateOf(store.loadCheckIns())}
- fun avg(f:(CheckIn)->Int):Double=if(checkins.isEmpty())0.0 else checkins.map(f).average()
- Page("آنالیز من",onBack){
-  LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=30.dp)){
-   item{
-    GoldCard{Text("مرکز اسکن رفتاری",fontWeight=FontWeight.ExtraBold,fontSize=18.sp);Text("یک اتفاق، برچسب شخصیت نیست. برنامه روندهای تکرارشونده را نشان می‌دهد.",color=Muted)}
-   }
-   item{
-    SectionTitle("چک‌این امروز","۱ یعنی ضعیف/کم؛ ۱۰ یعنی عالی/زیاد. در «تنهایی» عدد بالاتر یعنی احساس تنهایی بیشتر.")
-    ScoreSlider("حال کلی",mood){mood=it};ScoreSlider("انضباط",discipline){discipline=it};ScoreSlider("اعتمادبه‌نفس",confidence){confidence=it};ScoreSlider("کنترل خشم",anger){anger=it};ScoreSlider("احساس تنهایی",loneliness){loneliness=it};ScoreSlider("تمرکز",focus){focus=it}
-    PrimaryButton("ثبت اسکن امروز"){store.addCheckIn(CheckIn(mood=mood.toInt(),discipline=discipline.toInt(),confidence=confidence.toInt(),angerControl=anger.toInt(),loneliness=loneliness.toInt(),focus=focus.toInt()));checkins=store.loadCheckIns();onChange()}
-   }
-   item{
-    SectionTitle("آینه من","میانگین ثبت‌های تو، نه تشخیص پزشکی")
-    Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){StatPill("انضباط",String.format("%.1f",avg{it.discipline}),Modifier.weight(1f));StatPill("اعتمادبه‌نفس",String.format("%.1f",avg{it.confidence}),Modifier.weight(1f));StatPill("کنترل خشم",String.format("%.1f",avg{it.angerControl}),Modifier.weight(1f))}
-    Spacer(Modifier.height(7.dp));Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){StatPill("تمرکز",String.format("%.1f",avg{it.focus}),Modifier.weight(1f));StatPill("حال",String.format("%.1f",avg{it.mood}),Modifier.weight(1f));StatPill("تنهایی",String.format("%.1f",avg{it.loneliness}),Modifier.weight(1f))}
-   }
-   item{
-    val routine=store.items("routine");val adherence=if(routine.isEmpty())0 else routine.count{it.done}*100/routine.size
-    val expenses=store.loadMoney().filter{it.kind=="expense"}.sumOf{it.amount};val investments=store.loadMoney().filter{it.kind=="investment"}.sumOf{it.amount}
-    SectionTitle("داده‌های رفتاری متصل")
-    GoldCard{Text("پایبندی روتین: "+adherence+"٪");Text("مخارج ثبت‌شده: "+money(expenses));Text("سرمایه‌گذاری ثبت‌شده: "+money(investments));Text("تعداد یادداشت رشد: "+store.journals("growth").size);Text("تعداد ثبت رابطه: "+store.loadRelationship().size)}
-   }
-  }
- }
+    var mood by remember { mutableFloatStateOf(7f) }
+    var discipline by remember { mutableFloatStateOf(6f) }
+    var confidence by remember { mutableFloatStateOf(6f) }
+    var anger by remember { mutableFloatStateOf(7f) }
+    var loneliness by remember { mutableFloatStateOf(4f) }
+    var focus by remember { mutableFloatStateOf(6f) }
+    var checkins by remember { mutableStateOf(store.loadCheckIns()) }
+
+    fun avg(f:(CheckIn)->Int):Double = if(checkins.isEmpty()) 0.0 else checkins.map(f).average()
+    val aFocus=avg{it.focus}
+    val aDis=avg{it.discipline}
+    val aCon=avg{it.confidence}
+    val aAng=avg{it.angerControl}
+    val aMood=avg{it.mood}
+    val aLonely=avg{it.loneliness}
+
+    val strengths=listOf(
+        "تمرکز" to aFocus,
+        "انضباط" to aDis,
+        "اعتماد به نفس" to aCon,
+        "کنترل خشم" to aAng,
+        "حال کلی" to aMood
+    ).sortedByDescending{it.second}.take(3)
+
+    val improve=listOf(
+        "تمرکز" to (10.0-aFocus),
+        "انضباط" to (10.0-aDis),
+        "اعتماد به نفس" to (10.0-aCon),
+        "کنترل خشم" to (10.0-aAng),
+        "احساس تنهایی" to aLonely
+    ).sortedByDescending{it.second}.take(3)
+
+    Page("آنالیز من",onBack){
+        LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=28.dp)){
+            item{
+                GlassCard(strong=true){
+                    Text("اسکن کامل شخصیت و رفتار شما",fontWeight=FontWeight.ExtraBold,fontSize=18.sp,textAlign=TextAlign.Center,modifier=Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(8.dp))
+                    Box(Modifier.fillMaxWidth().height(255.dp),contentAlignment=Alignment.Center){
+                        AnalysisBody(Modifier.size(170.dp,245.dp))
+                        ScoreBubble("تفکر/تمرکز",aFocus,Modifier.align(Alignment.TopEnd))
+                        ScoreBubble("روابط عاطفی",aMood,Modifier.align(Alignment.CenterEnd))
+                        ScoreBubble("سلامت جسمی",if(store.loadWeights().isEmpty())0.0 else 7.5,Modifier.align(Alignment.BottomEnd))
+                        ScoreBubble("کنترل هیجان",aAng,Modifier.align(Alignment.TopStart))
+                        ScoreBubble("عزت نفس",aCon,Modifier.align(Alignment.CenterStart))
+                        ScoreBubble("انضباط",aDis,Modifier.align(Alignment.BottomStart))
+                    }
+                    PrimaryButton("مشاهده تحلیل کامل"){}
+                }
+            }
+
+            item{
+                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                    GlassCard(Modifier.weight(1f)){
+                        Text("نقاط قوت",color=Success,fontWeight=FontWeight.ExtraBold,textAlign=TextAlign.Center,modifier=Modifier.fillMaxWidth())
+                        strengths.forEach{entry->
+                            Text("• "+entry.first+(if(entry.second>0)"  "+String.format("%.1f",entry.second) else ""),fontSize=11.sp)
+                        }
+                    }
+                    GlassCard(Modifier.weight(1f)){
+                        Text("نقاط قابل بهبود",color=Danger,fontWeight=FontWeight.ExtraBold,textAlign=TextAlign.Center,modifier=Modifier.fillMaxWidth())
+                        improve.forEach{entry->Text("• "+entry.first,fontSize=11.sp)}
+                    }
+                }
+            }
+
+            item{PrimaryButton("شروع مسیر اصلاح"){}}
+
+            item{
+                SectionTitle("چک‌این امروز","هر عدد یک ثبت روزانه است؛ نتیجه پزشکی یا برچسب شخصیت نیست.")
+                GlassCard{
+                    ScoreSlider("حال کلی",mood){mood=it}
+                    ScoreSlider("انضباط",discipline){discipline=it}
+                    ScoreSlider("اعتماد به نفس",confidence){confidence=it}
+                    ScoreSlider("کنترل خشم",anger){anger=it}
+                    ScoreSlider("احساس تنهایی",loneliness){loneliness=it}
+                    ScoreSlider("تمرکز",focus){focus=it}
+                    PrimaryButton("ثبت اسکن امروز"){
+                        store.addCheckIn(
+                            CheckIn(
+                                mood=mood.toInt(),
+                                discipline=discipline.toInt(),
+                                confidence=confidence.toInt(),
+                                angerControl=anger.toInt(),
+                                loneliness=loneliness.toInt(),
+                                focus=focus.toInt()
+                            )
+                        )
+                        checkins=store.loadCheckIns()
+                        onChange()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalysisBody(modifier:Modifier=Modifier){
+    Canvas(modifier){
+        val cx=size.width/2
+        val glow=Brush.radialGradient(
+            listOf(Color.White.copy(.8f),NeonBlue.copy(.72f),NeonBlue.copy(.12f),Color.Transparent),
+            center=Offset(cx,size.height*.45f),
+            radius=size.width*.72f
+        )
+        drawCircle(glow,size.width*.65f,Offset(cx,size.height*.45f))
+        val body=Color(0xFF5AE2FF)
+        drawCircle(body,size.width*.11f,Offset(cx,size.height*.12f),style=Stroke(5f))
+        drawLine(body,Offset(cx,size.height*.23f),Offset(cx,size.height*.66f),7f)
+        drawLine(body,Offset(cx,size.height*.34f),Offset(cx-size.width*.24f,size.height*.52f),5f)
+        drawLine(body,Offset(cx,size.height*.34f),Offset(cx+size.width*.24f,size.height*.52f),5f)
+        drawLine(body,Offset(cx,size.height*.66f),Offset(cx-size.width*.18f,size.height*.94f),6f)
+        drawLine(body,Offset(cx,size.height*.66f),Offset(cx+size.width*.18f,size.height*.94f),6f)
+        listOf(
+            .29f to NeonPurple,
+            .39f to NeonBlue,
+            .49f to Success,
+            .59f to Gold
+        ).forEach{entry->
+            drawCircle(entry.second,size.width*.035f,Offset(cx,size.height*entry.first))
+        }
+        drawCircle(NeonPink,size.width*.045f,Offset(cx,size.height*.30f))
+    }
+}
+
+@Composable
+private fun ScoreBubble(label:String,value:Double,modifier:Modifier=Modifier){
+    Column(modifier.width(82.dp),horizontalAlignment=Alignment.CenterHorizontally){
+        Text(label,fontSize=9.sp,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center)
+        Box(
+            Modifier.size(42.dp).clip(CircleShape).background(Color(0xD8101620))
+                .border(2.dp,if(value>=6)Success else if(value>0)Danger else Gold,CircleShape),
+            contentAlignment=Alignment.Center
+        ){
+            Text(if(value<=0)"—" else String.format("%.1f",value),color=Color.White,fontWeight=FontWeight.ExtraBold,fontSize=12.sp)
+        }
+    }
 }
 
 @Composable
 fun ScoreSlider(label:String,value:Float,onChange:(Float)->Unit){
- Row{Text(label,Modifier.weight(1f),fontWeight=FontWeight.Bold);Text(value.toInt().toString()+"/10",color=Gold,fontWeight=FontWeight.Bold)}
- Slider(value=value,onValueChange=onChange,valueRange=1f..10f,steps=8,colors=SliderDefaults.colors(thumbColor=Gold,activeTrackColor=Gold))
+    Row{
+        Text(label,Modifier.weight(1f),fontWeight=FontWeight.Bold)
+        Text(value.toInt().toString()+"/10",color=Gold,fontWeight=FontWeight.Bold)
+    }
+    Slider(
+        value=value,
+        onValueChange=onChange,
+        valueRange=1f..10f,
+        steps=8,
+        colors=SliderDefaults.colors(thumbColor=Gold,activeTrackColor=Gold)
+    )
 }
 
 @Composable
 fun ReportsScreen(store:LifeStore,onBack:()->Unit){
- Page("گزارش زندگی",onBack){
-  LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=30.dp)){
-   item{SectionTitle("خلاصه فعلی","گزارش‌ها با هر ثبت جدید به‌روز می‌شوند.")}
-   item{GoldCard{Text(store.exportSummary(),lineHeight=25.sp)}}
-   item{
-    val m=store.loadMoney();val inc=m.filter{it.kind=="income"}.sumOf{it.amount}+store.monthlyIncome;val exp=m.filter{it.kind=="expense"}.sumOf{it.amount};val inv=m.filter{it.kind=="investment"}.sumOf{it.amount}
-    Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){StatPill("درآمد",money(inc),Modifier.weight(1f));StatPill("خرج",money(exp),Modifier.weight(1f));StatPill("سرمایه",money(inv),Modifier.weight(1f))}
-   }
-   item{
-    SectionTitle("روند وزن")
-    MiniLineChart(store.loadWeights().takeLast(20).map{it.weight.toFloat()})
-   }
-   item{
-    SectionTitle("گزارش شخصیت")
-    val c=store.loadCheckIns()
-    if(c.isEmpty())EmptyHint("هنوز چک‌این شخصیت ثبت نشده.") else GoldCard{Text("تعداد اسکن‌ها: "+c.size);Text("بهبود را با مقایسه روند چند هفته‌ای بررسی کن، نه یک روز.")}
-   }
-  }
- }
+    val checkins=store.loadCheckIns()
+    Page("گزارش پیشرفت",onBack){
+        LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp),contentPadding=PaddingValues(bottom=28.dp)){
+            item{
+                Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                    listOf("هفته","ماه","سال").forEachIndexed{i,t->
+                        FilterChip(selected=i==1,onClick={},label={Text(t)},modifier=Modifier.weight(1f))
+                    }
+                }
+            }
+            item{
+                GlassCard(strong=true){
+                    Text("روند پیشرفت",fontWeight=FontWeight.ExtraBold,fontSize=18.sp)
+                    Spacer(Modifier.height(8.dp))
+                    MultiProgressChart(checkins.takeLast(10))
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceEvenly){
+                        LegendDot(NeonPink,"حال")
+                        LegendDot(NeonBlue,"تمرکز")
+                        LegendDot(Success,"انضباط")
+                        LegendDot(Gold,"کنترل خشم")
+                    }
+                }
+            }
+            item{
+                val moneyRows=store.loadMoney()
+                val spent=moneyRows.filter{it.kind=="expense"}.sumOf{it.amount}
+                val inv=moneyRows.filter{it.kind=="investment"}.sumOf{it.amount}
+                SectionTitle("خلاصه ماه")
+                GlassCard{
+                    ReportLine("بهترین پیشرفت",if(checkins.size>=2)"ادامه ثبت‌ها برای تحلیل روند" else "داده بیشتری ثبت کن",Success)
+                    ReportLine("پایبندی برنامه",if(store.items("routine").isEmpty())"هنوز برنامه‌ای نساختی" else "بر اساس تیک‌های خودت",Gold)
+                    ReportLine("خرج ثبت‌شده",money(spent),Danger)
+                    ReportLine("سرمایه‌گذاری ثبت‌شده",money(inv),Success)
+                    ReportLine("هدف ماه بعد","تمرکز روی یک تغییر مهم",Success)
+                }
+            }
+            item{
+                Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){
+                    val inc=store.loadMoney().filter{it.kind=="income"}.sumOf{it.amount}+store.monthlyIncome
+                    val exp=store.loadMoney().filter{it.kind=="expense"}.sumOf{it.amount}
+                    val inv=store.loadMoney().filter{it.kind=="investment"}.sumOf{it.amount}
+                    StatPill("درآمد",money(inc),Modifier.weight(1f))
+                    StatPill("خرج",money(exp),Modifier.weight(1f))
+                    StatPill("سرمایه",money(inv),Modifier.weight(1f))
+                }
+            }
+            item{
+                SectionTitle("روند وزن")
+                MiniLineChart(store.loadWeights().takeLast(20).map{it.weight.toFloat()})
+            }
+        }
+    }
+}
+
+@Composable
+private fun MultiProgressChart(checkins:List<CheckIn>){
+    Canvas(Modifier.fillMaxWidth().height(180.dp)){
+        for(i in 0..4){
+            val y=size.height*i/4f
+            drawLine(MaterialTheme.colorScheme.onSurface.copy(.12f),Offset(0f,y),Offset(size.width,y),1f)
+        }
+        if(checkins.size<2) return@Canvas
+        fun points(f:(CheckIn)->Int)=checkins.mapIndexed{i,v->
+            Offset(size.width*i/(checkins.size-1),size.height-(f(v).coerceIn(0,10)/10f)*size.height)
+        }
+        fun series(p:List<Offset>,color:Color){
+            for(i in 0 until p.lastIndex) drawLine(color,p[i],p[i+1],4f)
+            p.forEach{drawCircle(color,5f,it)}
+        }
+        series(points{it.mood},NeonPink)
+        series(points{it.focus},NeonBlue)
+        series(points{it.discipline},Success)
+        series(points{it.angerControl},Gold)
+    }
+}
+
+@Composable
+private fun LegendDot(color:Color,label:String){
+    Row(verticalAlignment=Alignment.CenterVertically){
+        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(3.dp))
+        Text(label,fontSize=8.sp)
+    }
+}
+
+@Composable
+private fun ReportLine(label:String,value:String,color:Color){
+    Row(Modifier.fillMaxWidth().padding(vertical=5.dp),verticalAlignment=Alignment.CenterVertically){
+        Box(Modifier.size(10.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(7.dp))
+        Text(label,Modifier.weight(1f),fontWeight=FontWeight.Bold,fontSize=12.sp)
+        Text(value,fontSize=11.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
 
 @Composable
 fun ReminderScreen(context:Context,onBack:()->Unit){
- var message by remember{mutableStateOf("هنوز یادآوری تازه‌ای تنظیم نشده.")}
- Page("یادآورها",onBack){
-  SectionTitle("اعلان‌های روزانه","یک لمس کافی است؛ زمان‌های پیش‌فرض بعداً قابل تغییر خواهند بود.")
-  listOf(
-   Triple("شروع صبح",8 to 0,"سه کار اصلی و روتین صبح"),
-   Triple("بدن و غذا",13 to 0,"غذا، آب و وضعیت بدن را ثبت کن"),
-   Triple("مرور مالی",20 to 30,"مخارج و سرمایه امروز را ثبت کن"),
-   Triple("مرور شب",22 to 30,"شکرگزاری، رشد و برنامه فردا")
-  ).forEachIndexed{i,(title,time,text)->
-   GoldCard(Modifier.padding(vertical=5.dp)){
-    Row(verticalAlignment=androidx.compose.ui.Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(title,fontWeight=FontWeight.Bold);Text(String.format("%02d:%02d",time.first,time.second)+" • "+text,color=Muted,fontSize=12.sp)};Button(onClick={ReminderReceiver.scheduleDaily(context,200+i,time.first,time.second,title,text);message="یادآوری «"+title+"» فعال شد."},colors=ButtonDefaults.buttonColors(containerColor=Ink,contentColor=Gold)){Text("فعال")}}
-   }
-  }
-  Text(message,color=Success,modifier=Modifier.padding(top=12.dp))
- }
+    var message by remember { mutableStateOf("یک یادآور را فعال کن؛ بعداً زمان‌های سفارشی هم اضافه می‌شوند.") }
+    Page("یادآورها",onBack){
+        SectionTitle("اعلان‌های هوشمند")
+        listOf(
+            Triple("شروع صبح",8 to 0,"برنامه امروز را مرور کن"),
+            Triple("بدن و غذا",13 to 0,"غذا، آب و وضعیت بدنت را ثبت کن"),
+            Triple("مرور مالی",20 to 30,"مخارج و سرمایه امروز را ثبت کن"),
+            Triple("مرور شب",22 to 30,"شکرگزاری، رشد و برنامه فردا")
+        ).forEachIndexed{i,entry->
+            GlassCard(Modifier.padding(vertical=5.dp)){
+                Row(verticalAlignment=Alignment.CenterVertically){
+                    Column(Modifier.weight(1f)){
+                        Text(entry.first,fontWeight=FontWeight.Bold)
+                        Text(
+                            String.format("%02d:%02d",entry.second.first,entry.second.second)+" • "+entry.third,
+                            fontSize=11.sp,
+                            color=MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Button(
+                        onClick={
+                            ReminderReceiver.scheduleDaily(context,200+i,entry.second.first,entry.second.second,entry.first,entry.third)
+                            message="یادآور «"+entry.first+"» فعال شد."
+                        },
+                        colors=ButtonDefaults.buttonColors(containerColor=Gold,contentColor=Ink)
+                    ){Text("فعال")}
+                }
+            }
+        }
+        Text(message,color=Success,modifier=Modifier.padding(top=12.dp))
+    }
 }
