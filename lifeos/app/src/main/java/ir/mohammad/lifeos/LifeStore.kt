@@ -17,7 +17,7 @@ data class CheckIn(val id:String=UUID.randomUUID().toString(),val mood:Int,val d
 data class RelationshipEntry(val id:String=UUID.randomUUID().toString(),val type:String,val note:String,val amount:Long,val emotion:Int,val date:String=LocalDate.now().toString())
 
 class LifeStore(context:Context){
- private val p=context.getSharedPreferences("mohammad_life_os",Context.MODE_PRIVATE)
+ private val p=context.getSharedPreferences("mohammad_life_os_v3",Context.MODE_PRIVATE)
  var name:String
   get()=p.getString("profile_name","")?:""
   set(v){p.edit().putString("profile_name",v).apply()}
