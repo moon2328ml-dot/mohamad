@@ -534,10 +534,11 @@ fun ReportsScreen(store:LifeStore,onBack:()->Unit){
 
 @Composable
 private fun MultiProgressChart(checkins:List<CheckIn>){
+    val gridColor=MaterialTheme.colorScheme.onSurface.copy(.12f)
     Canvas(Modifier.fillMaxWidth().height(180.dp)){
         for(i in 0..4){
             val y=size.height*i/4f
-            drawLine(MaterialTheme.colorScheme.onSurface.copy(.12f),Offset(0f,y),Offset(size.width,y),1f)
+            drawLine(gridColor,Offset(0f,y),Offset(size.width,y),1f)
         }
         if(checkins.size<2) return@Canvas
         fun points(f:(CheckIn)->Int)=checkins.mapIndexed{i,v->
