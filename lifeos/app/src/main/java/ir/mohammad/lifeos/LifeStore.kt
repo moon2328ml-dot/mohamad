@@ -17,10 +17,18 @@ data class RelationshipEntry(val id:String=UUID.randomUUID().toString(),val type
 
 class LifeStore(context:Context){
  private val p=context.getSharedPreferences("mohammad_life_os",Context.MODE_PRIVATE)
- var name:String get()=p.getString("profile_name","")?:"" set(v)=p.edit().putString("profile_name",v).apply()
- var email:String get()=p.getString("profile_email","")?:"" set(v)=p.edit().putString("profile_email",v).apply()
- var targetWeight:Double get()=java.lang.Double.longBitsToDouble(p.getLong("target_weight",java.lang.Double.doubleToLongBits(75.0))) set(v)=p.edit().putLong("target_weight",java.lang.Double.doubleToLongBits(v)).apply()
- var monthlyIncome:Long get()=p.getLong("monthly_income",0L) set(v)=p.edit().putLong("monthly_income",v).apply()
+ var name:String
+  get()=p.getString("profile_name","")?:""
+  set(v){p.edit().putString("profile_name",v).apply()}
+ var email:String
+  get()=p.getString("profile_email","")?:""
+  set(v){p.edit().putString("profile_email",v).apply()}
+ var targetWeight:Double
+  get()=java.lang.Double.longBitsToDouble(p.getLong("target_weight",java.lang.Double.doubleToLongBits(75.0)))
+  set(v){p.edit().putLong("target_weight",java.lang.Double.doubleToLongBits(v)).apply()}
+ var monthlyIncome:Long
+  get()=p.getLong("monthly_income",0L)
+  set(v){p.edit().putLong("monthly_income",v).apply()}
  fun profileReady()=name.isNotBlank()
 
  fun loadItems():List<SimpleItem> =parse("items"){o->SimpleItem(o.optString("id"),o.optString("title"),o.optString("group"),o.optBoolean("done"),o.optDouble("value"),o.optString("date"))}
