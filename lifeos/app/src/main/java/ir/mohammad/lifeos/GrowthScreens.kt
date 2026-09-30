@@ -44,6 +44,7 @@ fun AttractionScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
 
     Page("قانون جذب",onBack){
         LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=28.dp)){
+            item{FeatureHero(Screen.ATTRACTION,"قانون جذب","اساتید • تمرین‌ها • پروژه خواسته‌ها • دفتر شواهد")}
             item{
                 GlassCard(strong=true){
                     Row(verticalAlignment=Alignment.CenterVertically){
@@ -169,20 +170,7 @@ fun PowerScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
 
     Page("روانشناسی سیاه",onBack){
         LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp),contentPadding=PaddingValues(bottom=28.dp)){
-            item{
-                Box(
-                    Modifier.fillMaxWidth().height(190.dp)
-                        .clip(RoundedCornerShape(24.dp))
-                        .background(Brush.verticalGradient(listOf(Color(0xFF1A0829),Color(0xFF050609))))
-                        .border(1.5.dp,Gold,RoundedCornerShape(24.dp))
-                ){
-                    DarkPowerFigure(Modifier.fillMaxSize())
-                    Column(Modifier.fillMaxSize().padding(14.dp),verticalArrangement=Arrangement.Bottom){
-                        Text("قوی باش، قابل‌بازی نباش",color=Gold,fontWeight=FontWeight.ExtraBold,fontSize=20.sp)
-                        Text("شناخت انسان • دفاع در برابر دستکاری • قدرت اجتماعی",color=Color.White.copy(.86f),fontSize=11.sp)
-                    }
-                }
-            }
+            item{FeatureHero(Screen.POWER,"روانشناسی سیاه","شناخت انسان • دفاع در برابر دستکاری • قدرت اجتماعی")}
             item{
                 Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
                     listOf("آموزش","تکنیک‌ها","سناریوها").forEachIndexed{i,t->
@@ -258,6 +246,7 @@ fun SpiritualScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
 
     Page("معنویت و آرامش",onBack){
         LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=28.dp)){
+            item{FeatureHero(Screen.SPIRITUAL,"معنویت و آرامش","عبادت • مدیتیشن • آرامش ذهنی • معنا و هدف زندگی")}
             item{
                 GlassCard(strong=true){
                     Text("من و خدا",fontWeight=FontWeight.ExtraBold,fontSize=20.sp,color=Gold)
@@ -364,11 +353,14 @@ fun AnalysisScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
     Page("آنالیز من",onBack){
         LazyColumn(verticalArrangement=Arrangement.spacedBy(9.dp),contentPadding=PaddingValues(bottom=28.dp)){
             item{
+                FeatureHero(Screen.ANALYSIS,"آنالیز من","اسکن شخصیت • نقاط قوت • نقاط قابل بهبود • ردیابی پیشرفت")
+            }
+            item{
                 GlassCard(strong=true){
                     Text("اسکن کامل شخصیت و رفتار شما",fontWeight=FontWeight.ExtraBold,fontSize=18.sp,textAlign=TextAlign.Center,modifier=Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(255.dp),contentAlignment=Alignment.Center){
-                        AnalysisBody(Modifier.size(170.dp,245.dp))
+                        ReferenceCrop(featureCrop(Screen.ANALYSIS),Modifier.size(170.dp,245.dp),22)
                         ScoreBubble("تفکر/تمرکز",aFocus,Modifier.align(Alignment.TopEnd))
                         ScoreBubble("روابط عاطفی",aMood,Modifier.align(Alignment.CenterEnd))
                         ScoreBubble("سلامت جسمی",if(store.loadWeights().isEmpty())0.0 else 7.5,Modifier.align(Alignment.BottomEnd))
