@@ -1,7 +1,5 @@
 package ir.mohammad.lifeos
 
-import android.Manifest
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,8 +23,13 @@ class MainActivity:ComponentActivity(){
     var version by remember{mutableIntStateOf(0)}
     var dark by remember{mutableStateOf(store.darkMode)}
     var screen by remember{mutableStateOf(if(store.profileReady())Screen.HOME else Screen.ACCOUNT)}
+    var appReady by remember{mutableStateOf(false)}
     val back={screen=Screen.HOME}
+    LaunchedEffect(Unit){ kotlinx.coroutines.delay(120); appReady=true }
     LifeTheme(dark=dark){
+     if(!appReady){
+      StartupScreen()
+     } else {
      when(screen){
       Screen.HOME->HomeScreen(
        store=store,
@@ -56,6 +59,7 @@ class MainActivity:ComponentActivity(){
       Screen.ACCOUNT->AccountScreen(store,dark,{dark=!dark;store.darkMode=dark},onDone={version++;screen=Screen.HOME},onBack=if(store.profileReady())back else null)
       Screen.INVESTMENT->InvestmentScreen(store,back){version++}
       Screen.LIBRARY->LibraryScreen(store,back){version++}
+     }
      }
     }
    }
