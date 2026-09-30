@@ -231,7 +231,7 @@ fun HomeScreen(
                         Text("کنترل زندگی در دستان توست",fontSize=17.sp,fontWeight=FontWeight.ExtraBold,color=Gold)
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            if(today.isEmpty()) "برای امروز هنوز برنامه‌ای نساختی. برنامه و روتین را خودت می‌چینی."
+                            if(totalToday==0) "برای امروز هنوز برنامه‌ای نساختی. برنامه و روتین را خودت می‌چینی."
                             else if(progress==100) "مسیر امروز کامل شد؛ نتیجه را ثبت کن و برای فردا آماده شو."
                             else "فقط روی قدم بعدی تمرکز کن؛ برنامه جای تو تصمیم نمی‌گیرد.",
                             fontSize=12.sp,
@@ -248,34 +248,29 @@ fun HomeScreen(
 
 @Composable
 private fun HomeCategoryTile(card:Dash,onOpen:(Screen)->Unit){
-    val dark=LocalDarkMode.current
     Box(
         Modifier.fillMaxWidth().height(96.dp)
-            .shadow(6.dp,RoundedCornerShape(16.dp))
+            .shadow(7.dp,RoundedCornerShape(16.dp))
             .clip(RoundedCornerShape(16.dp))
-            .background(
+            .border(1.dp,Gold.copy(.88f),RoundedCornerShape(16.dp))
+            .clickable{onOpen(card.screen)}
+    ){
+        CategoryReferenceArt(card.screen,Modifier.fillMaxSize())
+        Box(
+            Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    if(dark) listOf(Color(0xE8121721),Color(0xEE05070C))
-                    else listOf(Color(0xF9FFFFFF),Color(0xEEF7F0DD))
+                    listOf(Color.Transparent,Color.Transparent,Color.Black.copy(.78f))
                 )
             )
-            .border(1.dp,Gold.copy(.78f),RoundedCornerShape(16.dp))
-            .clickable{onOpen(card.screen)}
-            .padding(5.dp),
-        contentAlignment=Alignment.Center
-    ){
-        Column(horizontalAlignment=Alignment.CenterHorizontally){
-            Box(
-                Modifier.size(43.dp).clip(RoundedCornerShape(13.dp))
-                    .background(Brush.radialGradient(listOf(card.c2,card.c1,Color.Black)))
-                    .border(1.dp,Gold.copy(.55f),RoundedCornerShape(13.dp)),
-                contentAlignment=Alignment.Center
-            ){
-                Text(card.icon,color=Color.White,fontSize=20.sp,fontWeight=FontWeight.ExtraBold)
-            }
-            Spacer(Modifier.height(5.dp))
-            Text(card.title,fontSize=9.sp,fontWeight=FontWeight.ExtraBold,maxLines=1,textAlign=TextAlign.Center)
-        }
+        )
+        Text(
+            card.title,
+            color=Color.White,
+            fontSize=9.sp,
+            fontWeight=FontWeight.ExtraBold,
+            textAlign=TextAlign.Center,
+            modifier=Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal=3.dp,vertical=6.dp)
+        )
     }
 }
 
