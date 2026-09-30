@@ -29,6 +29,9 @@ class LifeStore(context:Context){
  var monthlyIncome:Long
   get()=p.getLong("monthly_income",0L)
   set(v){p.edit().putLong("monthly_income",v).apply()}
+ var darkMode:Boolean
+  get()=p.getBoolean("dark_mode",false)
+  set(v){p.edit().putBoolean("dark_mode",v).apply()}
  fun profileReady()=name.isNotBlank()
 
  fun loadItems():List<SimpleItem> =parse("items"){o->SimpleItem(o.optString("id"),o.optString("title"),o.optString("group"),o.optBoolean("done"),o.optDouble("value"),o.optString("date"))}
