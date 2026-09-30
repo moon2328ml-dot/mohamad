@@ -5,12 +5,9 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.core.view.WindowCompat
-import android.graphics.Color as AndroidColor
 
 enum class Screen {
  HOME, ROUTINE, DAILY_GOALS, YEARLY_GOALS, LONG_GOALS, FINANCE, DEBTS, BODY,
@@ -19,10 +16,8 @@ enum class Screen {
 }
 
 class MainActivity:ComponentActivity(){
- private val notificationPermission=registerForActivityResult(ActivityResultContracts.RequestPermission()){}
  override fun onCreate(savedInstanceState:Bundle?){
   super.onCreate(savedInstanceState)
-  if(Build.VERSION.SDK_INT>=33)notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
   setContent{
    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl){
     val store=remember{LifeStore(this)}
@@ -31,12 +26,6 @@ class MainActivity:ComponentActivity(){
     var dark by remember{mutableStateOf(store.darkMode)}
     var screen by remember{mutableStateOf(if(store.profileReady())Screen.HOME else Screen.ACCOUNT)}
     val back={screen=Screen.HOME}
-    LaunchedEffect(dark){
-     window.statusBarColor=if(dark) AndroidColor.rgb(5,7,12) else AndroidColor.WHITE
-     window.navigationBarColor=if(dark) AndroidColor.rgb(5,7,12) else AndroidColor.WHITE
-     WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightStatusBars=!dark
-     WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightNavigationBars=!dark
-    }
     LifeTheme(dark=dark){
      when(screen){
       Screen.HOME->HomeScreen(
