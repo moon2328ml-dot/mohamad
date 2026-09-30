@@ -163,17 +163,12 @@ fun HomeScreen(
             ){
                 item{
                     Box(
-                        Modifier.fillMaxWidth().height(176.dp)
+                        Modifier.fillMaxWidth().height(168.dp)
                             .shadow(12.dp,RoundedCornerShape(24.dp))
                             .clip(RoundedCornerShape(24.dp))
                             .border(1.5.dp,Gold,RoundedCornerShape(24.dp))
                     ){
-                        Image(
-                            painter=painterResource(R.drawable.app_logo),
-                            contentDescription="متد محمد",
-                            contentScale=ContentScale.Crop,
-                            modifier=Modifier.fillMaxSize()
-                        )
+                        ReferenceCrop(homeHeroCrop,Modifier.fillMaxSize(),24)
                         Box(
                             Modifier.fillMaxSize().background(
                                 Brush.verticalGradient(listOf(Color.Transparent,Color.Black.copy(.08f),Color.Black.copy(.84f)))
@@ -183,8 +178,6 @@ fun HomeScreen(
                             Modifier.fillMaxSize().padding(13.dp),
                             verticalArrangement=Arrangement.Bottom
                         ){
-                            Text("متد محمد",color=Gold,fontSize=22.sp,fontWeight=FontWeight.ExtraBold)
-                            Text("زندگی آگاهانه، قدرت واقعی، نسخه بهتر من",color=Color.White,fontSize=11.sp)
                             Spacer(Modifier.height(8.dp))
                             Row(verticalAlignment=Alignment.CenterVertically){
                                 LinearProgressIndicator(
@@ -209,7 +202,7 @@ fun HomeScreen(
                 item{
                     LazyVerticalGrid(
                         columns=GridCells.Fixed(4),
-                        modifier=Modifier.fillMaxWidth().height(205.dp),
+                        modifier=Modifier.fillMaxWidth().height(214.dp),
                         userScrollEnabled=false,
                         horizontalArrangement=Arrangement.spacedBy(6.dp),
                         verticalArrangement=Arrangement.spacedBy(7.dp)
@@ -219,38 +212,11 @@ fun HomeScreen(
                 }
 
                 item{
-                    GlassCard{
-                        Text("ابزارهای من",fontWeight=FontWeight.ExtraBold,fontSize=16.sp,color=Gold)
-                        Text("اهداف، مالی، خاطرات و رشد؛ همه در دسترس خودت",fontSize=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(9.dp))
-                        val tools=listOf(
-                            Triple("✓","اهداف امروز",Screen.DAILY_GOALS),
-                            Triple("★","اهداف سالانه",Screen.YEARLY_GOALS),
-                            Triple("∞","بلندمدت",Screen.LONG_GOALS),
-                            Triple("⌁","اقساط",Screen.DEBTS),
-                            Triple("♜","سرمایه",Screen.INVESTMENT),
-                            Triple("✦","شکرگزاری",Screen.GRATITUDE),
-                            Triple("✎","خاطرات",Screen.MEMORIES),
-                            Triple("⚒","آزمایشگاه",Screen.MISTAKES),
-                            Triple("⏰","یادآورها",Screen.REMINDERS)
-                        )
-                        tools.chunked(3).forEach{row->
-                            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
-                                row.forEach{tool->
-                                    QuickTool(tool.first,tool.second,Modifier.weight(1f)){onOpen(tool.third)}
-                                }
-                                repeat(3-row.size){Spacer(Modifier.weight(1f))}
-                            }
-                            Spacer(Modifier.height(6.dp))
-                        }
-                    }
-                }
-
-                item{
                     Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){
-                        StatPill("مسیر امروز",progress.toString()+"%",Modifier.weight(1f))
-                        StatPill("سرمایه",money(investments),Modifier.weight(1f))
-                        StatPill("وزن",latestWeight?.let{it.toString()+" kg"} ?: "—",Modifier.weight(1f))
+                        StatPill("سلامت",if(latestWeight!=null)"ثبت شده" else "—",Modifier.weight(1f))
+                        StatPill("تمرکز","$progress%",Modifier.weight(1f))
+                        StatPill("مطالعه",if(store.journals("growth").any{it.date==java.time.LocalDate.now().toString()})"✓" else "—",Modifier.weight(1f))
+                        StatPill("مالی",if(store.loadMoney().any{it.date==java.time.LocalDate.now().toString()})"✓" else "—",Modifier.weight(1f))
                     }
                 }
 
