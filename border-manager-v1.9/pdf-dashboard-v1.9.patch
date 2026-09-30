@@ -72,7 +72,61 @@
                  }
                  y += 3f
              }
-@@ -396,6 +389,78 @@
+@@ -281,48 +274,11 @@
+         borderTitle: String,
+         dailyGroups: List<Pair<Jalali.Date, List<CargoDayJourney>>>
+     ): File {
+-        val pdf = PdfDocument()
+-        val prefs = AppPreferences(context)
+-        var pageNo = 1
+-        var page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
+-        var y = drawHeader(page.canvas, prefs.companyName, title, borderTitle)
+-        y = drawRtl(page.canvas, "بازه گزارش: $period", y, 11.5f, true)
+-        y = drawRtl(page.canvas, "این گزارش فقط روند روزانه بار را نشان می‌دهد و تاریخ ثبت پلاک در آن نمایش داده نمی‌شود.", y, 10f, false)
+-        y = drawDivider(page.canvas, y + 3f)
+-
+-        if (dailyGroups.isEmpty()) {
+-            y = drawRtl(page.canvas, "برای این انتخاب روند روزانه‌ای وجود ندارد.", y + 12f, 12f, false)
+-        } else {
+-            dailyGroups.forEach { (date, list) ->
+-                if (y > 710f) {
+-                    pdf.finishPage(page); pageNo++
+-                    page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
+-                    y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
+-                }
+-                val changed = list.count { it.eventSummary != "بدون تغییر" }
+-                y = drawRtl(page.canvas, "${date.format()} — ${list.size} ماشین | تغییر وضعیت: $changed | بدون تغییر: ${list.size - changed}", y + 3f, 12f, true)
+-                list.forEach { j ->
+-                    if (y > 700f) {
+-                        pdf.finishPage(page); pageNo++
+-                        page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
+-                        y = drawHeader(page.canvas, prefs.companyName, "ادامه $title", borderTitle)
+-                    }
+-                    val t = j.truck
+-                    val part = t.partTitle.takeIf { it.isNotBlank() }?.let { " | پارت $it" } ?: ""
+-                    y = drawRtl(page.canvas, "پلاک ${t.plate} | ${t.cargoTitle}$part", y, 10.8f, true)
+-                    y = drawRtl(page.canvas, "اتفاق روز: ${j.eventSummary}", y, 9.9f, false)
+-                    y = drawRtl(page.canvas, "پایان روز: ${j.endStateText}", y, 9.9f, true)
+-                    y = drawRtl(page.canvas, j.customsText, y, 9.4f, false)
+-                    if (t.followUpNote.isNotBlank() && j.dispositionAtEnd == CargoDisposition.STORED_IRAN) {
+-                        y = drawRtl(page.canvas, "پیگیری: ${t.followUpNote}", y, 9.2f, false)
+-                    }
+-                    y = drawDivider(page.canvas, y + 1f)
+-                }
+-            }
+-        }
+-        pdf.finishPage(page)
+-        val safe = title.replace(Regex("[^\\u0600-\\u06FFa-zA-Z0-9_-]+"), "-").take(70)
+-        return write(context, pdf, "$safe-روند-روزانه-${System.currentTimeMillis()}.pdf")
++        // Use the same approved colorful dashboard layout for the owner journey report.
++        // The report is still sourced from the daily journey data, but the PDF is grouped
++        // and color-coded like the approved reference instead of the old text-only timeline.
++        val trucks = dailyGroups.flatMap { it.second.map { journey -> journey.truck } }.distinctBy { it.id }
++        return colorfulStatusReport(context, title, period, borderTitle, trucks)
+     }
+ 
+     fun statusReport(
+@@ -396,6 +352,78 @@
          Color.rgb(241, 247, 248) to Color.rgb(46, 105, 113)
      )
  
