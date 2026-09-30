@@ -38,17 +38,8 @@ class LifeStore(context:Context){
  fun deleteItem(id:String)=saveItems(loadItems().filterNot{it.id==id})
  fun items(group:String)=loadItems().filter{it.group==group}
  fun seedDefaultsIfNeeded(){
-  if(p.getBoolean("seeded",false))return
-  saveItems(listOf(
-   SimpleItem(title="بیدار شدن و مرتب کردن تخت",group="routine"),
-   SimpleItem(title="آب + صبحانه متعادل",group="routine"),
-   SimpleItem(title="سه کار اصلی امروز",group="routine"),
-   SimpleItem(title="۱۰ دقیقه شکرگزاری/تجسم",group="routine"),
-   SimpleItem(title="ورزش یا پیاده‌روی",group="routine"),
-   SimpleItem(title="مرور مالی شبانه",group="routine"),
-   SimpleItem(title="عبادت/ذکر/دعا",group="routine"),
-   SimpleItem(title="مرور روز و برنامه فردا",group="routine")
-  ));p.edit().putBoolean("seeded",true).apply()
+  if(p.getBoolean("seeded",false)) return
+  p.edit().putBoolean("seeded",true).apply()
  }
 
  fun loadMoney():List<MoneyEntry> =parse("money"){o->MoneyEntry(o.optString("id"),o.optString("kind"),o.optString("category"),o.optLong("amount"),o.optString("note"),o.optString("date"))}
