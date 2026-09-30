@@ -1,4 +1,4 @@
-name: Build BorderManager v1.7
+name: Build BorderManager v1.8
 
 on:
   workflow_dispatch:
@@ -217,6 +217,31 @@ jobs:
           grep -q 'گزارش ماهانه وضعیت بار' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
           grep -q 'drawOwnerBand' app/src/main/java/ir/bordermanager/pdf/PdfExporter.kt
 
+      - name: Fix cloud backup export and bump v1.8
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd build-src
+          python - <<'PY'
+          from pathlib import Path
+          db = Path("app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt")
+          s = db.read_text()
+          old = 'readableDatabase.rawQuery("SELECT * FROM $table ORDER BY id", null)'
+          new = 'readableDatabase.rawQuery("SELECT * FROM $table ORDER BY rowid", null)'
+          if old not in s:
+              raise SystemExit("backup export query not found")
+          db.write_text(s.replace(old, new))
+
+          g = Path("app/build.gradle.kts")
+          t = g.read_text()
+          t = t.replace('versionCode = 170', 'versionCode = 180')
+          t = t.replace('versionName = "1.7.0"', 'versionName = "1.8.0"')
+          g.write_text(t)
+          PY
+          grep -q 'ORDER BY rowid' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
+          grep -q 'versionName = "1.8.0"' app/build.gradle.kts
+          grep -q 'private const val DB_VERSION = 6' app/src/main/java/ir/bordermanager/data/DatabaseHelper.kt
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -251,26 +276,26 @@ jobs:
           test -f build-src/app/build/outputs/apk/debug/app-debug.apk
           test -f build-src/app/build/outputs/apk/release/app-release-unsigned.apk
           test -f "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar"
-          cp build-src/app/build/outputs/apk/debug/app-debug.apk BorderManager-v1.7.0-debug.apk
-          cp build-src/app/build/outputs/apk/release/app-release-unsigned.apk BorderManager-v1.7.0-release-unsigned.apk
+          cp build-src/app/build/outputs/apk/debug/app-debug.apk BorderManager-v1.8.0-debug.apk
+          cp build-src/app/build/outputs/apk/release/app-release-unsigned.apk BorderManager-v1.8.0-release-unsigned.apk
           cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" apksigner.jar
-          tar -czf BorderManager-v1.7.0-source.tar.gz -C build-src .
-          sha256sum BorderManager-v1.7.0-debug.apk BorderManager-v1.7.0-release-unsigned.apk BorderManager-v1.7.0-source.tar.gz
+          tar -czf BorderManager-v1.8.0-source.tar.gz -C build-src .
+          sha256sum BorderManager-v1.8.0-debug.apk BorderManager-v1.8.0-release-unsigned.apk BorderManager-v1.8.0-source.tar.gz
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: BorderManager-v1.7.0-debug
-          path: BorderManager-v1.7.0-debug.apk
+          name: BorderManager-v1.8.0-debug
+          path: BorderManager-v1.8.0-debug.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload release signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: BorderManager-v1.7.0-release-tools
+          name: BorderManager-v1.8.0-release-tools
           path: |
-            BorderManager-v1.7.0-release-unsigned.apk
+            BorderManager-v1.8.0-release-unsigned.apk
             apksigner.jar
           if-no-files-found: error
           retention-days: 30
@@ -278,7 +303,7 @@ jobs:
       - name: Upload source
         uses: actions/upload-artifact@v4
         with:
-          name: BorderManager-v1.7.0-source
-          path: BorderManager-v1.7.0-source.tar.gz
+          name: BorderManager-v1.8.0-source
+          path: BorderManager-v1.8.0-source.tar.gz
           if-no-files-found: error
           retention-days: 30
