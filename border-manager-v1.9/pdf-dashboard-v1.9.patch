@@ -174,7 +174,7 @@
          val prefs = AppPreferences(context)
          var pageNo = 1
          var page = pdf.startPage(PdfDocument.PageInfo.Builder(PAGE_W, PAGE_H, pageNo).create())
-@@ -396,6 +365,99 @@
+@@ -396,6 +365,102 @@
          Color.rgb(241, 247, 248) to Color.rgb(46, 105, 113)
      )
  
@@ -304,7 +304,10 @@
 +        val bandH = 23f
 +        canvas.drawRoundRect(RectF(MARGIN, y, PAGE_W - MARGIN, y + bandH), 8f, 8f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = bg })
 +        drawRtlColor(canvas, "$owner — ${Formatters.number(count)} پلاک", y + 5f, 9.2f, true, fg)
-+        return drawRtlColor(canvas, "پلاک‌ها: $plates", y + bandH + 2f, 8.8f, false, fallbackFg)
++        val plateList = plates.split("،").map { it.trim() }.filter { it.isNotBlank() }
++        var nextY = y + bandH + 2f
++        plateList.forEachIndexed { index, plate -> nextY = drawRtlColor(canvas, "${index + 1}.$plate", nextY, 8.8f, false, fallbackFg) }
++        return nextY
 +    }
 +
      private fun drawFooter(canvas: android.graphics.Canvas, pageNo: Int, label: String) {
