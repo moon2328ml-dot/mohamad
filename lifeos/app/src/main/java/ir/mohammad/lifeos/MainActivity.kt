@@ -8,7 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection\nimport androidx.core.view.WindowCompat\nimport android.graphics.Color as AndroidColor
 
 enum class Screen {
  HOME, ROUTINE, DAILY_GOALS, YEARLY_GOALS, LONG_GOALS, FINANCE, DEBTS, BODY,
@@ -38,7 +38,7 @@ class MainActivity:ComponentActivity(){
        onToggleDark={dark=!dark;store.darkMode=dark},
        onOpen={screen=it}
       )
-      Screen.ROUTINE->ChecklistScreen(store,"برنامه من","routine",back){version++}
+      Screen.ROUTINE->RoutineScreen(store,back){version++}
       Screen.DAILY_GOALS->ChecklistScreen(store,"اهداف امروز","daily_goal",back){version++}
       Screen.YEARLY_GOALS->ChecklistScreen(store,"اهداف سالانه","year_goal",back){version++}
       Screen.LONG_GOALS->ChecklistScreen(store,"اهداف بلندمدت","long_goal",back){version++}
