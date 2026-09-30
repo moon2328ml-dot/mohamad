@@ -6,7 +6,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.util.UUID
 
-data class SimpleItem(val id:String=UUID.randomUUID().toString(),val title:String,val group:String,val done:Boolean=false,val value:Double=0.0,val date:String=LocalDate.now().toString())
+data class SimpleItem(val id:String=UUID.randomUUID().toString(),val title:String,val group:String,val done:Boolean=false,val value:Double=0.0,val date:String=LocalDate.now().toString())\ndata class RoutineEntry(val id:String=UUID.randomUUID().toString(),val title:String,val time:String,val done:Boolean=false,val color:Int=0,val date:String=LocalDate.now().toString())
 data class MoneyEntry(val id:String=UUID.randomUUID().toString(),val kind:String,val category:String,val amount:Long,val note:String="",val date:String=LocalDate.now().toString())
 data class WeightEntry(val id:String=UUID.randomUUID().toString(),val weight:Double,val date:String=LocalDate.now().toString())
 data class FoodEntry(val id:String=UUID.randomUUID().toString(),val name:String,val calories:Int,val protein:Int,val date:String=LocalDate.now().toString())
@@ -45,6 +45,12 @@ class LifeStore(context:Context){
   p.edit().putBoolean("seeded",true).apply()
  }
 
+ fun loadRoutine():List<RoutineEntry> =parse("routine_entries"){o->RoutineEntry(o.optString("id"),o.optString("title"),o.optString("time"),o.optBoolean("done"),o.optInt("color"),o.optString("date"))}.sortedBy{it.time}
+ fun saveRoutine(x:List<RoutineEntry>)=save("routine_entries",x.map{JSONObject().apply{put("id",it.id);put("title",it.title);put("time",it.time);put("done",it.done);put("color",it.color);put("date",it.date)}})
+ fun addRoutine(x:RoutineEntry)=saveRoutine(loadRoutine()+x)
+ fun toggleRoutine(id:String)=saveRoutine(loadRoutine().map{if(it.id==id)it.copy(done=!it.done) else it})
+ fun deleteRoutine(id:String)=saveRoutine(loadRoutine().filterNot{it.id==id})
+
  fun loadMoney():List<MoneyEntry> =parse("money"){o->MoneyEntry(o.optString("id"),o.optString("kind"),o.optString("category"),o.optLong("amount"),o.optString("note"),o.optString("date"))}
  fun saveMoney(x:List<MoneyEntry>)=save("money",x.map{JSONObject().apply{put("id",it.id);put("kind",it.kind);put("category",it.category);put("amount",it.amount);put("note",it.note);put("date",it.date)}})
  fun addMoney(x:MoneyEntry)=saveMoney(loadMoney()+x);fun deleteMoney(id:String)=saveMoney(loadMoney().filterNot{it.id==id})
@@ -77,7 +83,7 @@ class LifeStore(context:Context){
  private fun <T> parse(key:String,f:(JSONObject)->T):List<T>{val raw=p.getString(key,"[]")?:"[]";return try{val a=JSONArray(raw);buildList{for(i in 0 until a.length())add(f(a.getJSONObject(i)))}}catch(_:Exception){emptyList()}}
 
  fun exportSummary():String{
-  val m=loadMoney();val inc=m.filter{it.kind=="income"}.sumOf{it.amount};val exp=m.filter{it.kind=="expense"}.sumOf{it.amount};val inv=m.filter{it.kind=="investment"}.sumOf{it.amount};val debt=loadDebts().sumOf{(it.total-it.paid).coerceAtLeast(0)};val r=items("routine");val w=loadWeights().lastOrNull()?.weight?.toString()?:"-"
+  val m=loadMoney();val inc=m.filter{it.kind=="income"}.sumOf{it.amount};val exp=m.filter{it.kind=="expense"}.sumOf{it.amount};val inv=m.filter{it.kind=="investment"}.sumOf{it.amount};val debt=loadDebts().sumOf{(it.total-it.paid).coerceAtLeast(0)};val r=loadRoutine();val w=loadWeights().lastOrNull()?.weight?.toString()?:"-"
   return "درآمد ثبت‌شده: "+inc+"\nمخارج: "+exp+"\nسرمایه‌گذاری: "+inv+"\nبدهی باقی‌مانده: "+debt+"\nروتین: "+r.count{it.done}+"/"+r.size+"\nوزن آخر: "+w
  }
 }
