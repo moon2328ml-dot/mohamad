@@ -30,7 +30,7 @@ val Success=Color(0xFF16835A)
 val Danger=Color(0xFFB23A48)
 
 @Composable
-fun LifeTheme(content:@Composable()->Unit){
+fun LifeTheme(content: @Composable () -> Unit){
  MaterialTheme(
   colorScheme=lightColorScheme(primary=Gold,onPrimary=Ink,background=AppBg,surface=Color.White,onSurface=Ink,secondary=Ink),
   typography=Typography(
@@ -60,7 +60,7 @@ fun MysticEye(modifier:Modifier=Modifier){
 }
 
 @Composable
-fun Page(title:String,onBack:(()->Unit)?=null,content:@Composable ColumnScope.()->Unit){
+fun Page(title:String,onBack:(()->Unit)?=null,content: @Composable ColumnScope.() -> Unit){
  Column(Modifier.fillMaxSize().background(AppBg).statusBarsPadding()){
   Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically){
    if(onBack!=null) TextButton(onClick=onBack){Text("‹",fontSize=30.sp,color=Ink)}
@@ -73,7 +73,7 @@ fun Page(title:String,onBack:(()->Unit)?=null,content:@Composable ColumnScope.()
 }
 
 @Composable
-fun GoldCard(modifier:Modifier=Modifier,content:@Composable ColumnScope.()->Unit){
+fun GoldCard(modifier:Modifier=Modifier,content: @Composable ColumnScope.() -> Unit){
  Card(modifier,shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=Color.White),elevation=CardDefaults.cardElevation(2.dp)){
   Column(Modifier.fillMaxWidth().border(1.dp,Gold.copy(alpha=.5f),RoundedCornerShape(20.dp)).padding(15.dp),content=content)
  }
@@ -107,7 +107,7 @@ fun MiniLineChart(values:List<Float>,modifier:Modifier=Modifier){
 }
 
 @Composable
-fun PrimaryButton(text:String,onClick:()->Unit,modifier:Modifier=Modifier){
+fun PrimaryButton(text:String,modifier:Modifier=Modifier,onClick:()->Unit){
  Button(onClick=onClick,modifier=modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp),colors=ButtonDefaults.buttonColors(containerColor=Gold,contentColor=Ink)){
   Text(text,fontWeight=FontWeight.Bold)
  }
