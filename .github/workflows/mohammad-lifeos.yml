@@ -1,7 +1,7 @@
-name: Build Fresh Mohammad Life OS APK
+name: Build Mohammad Life OS APK
 on:
   push:
-    branches: [ mohammad-lifeos-fresh ]
+    branches: [ mohammad-lifeos-fresh, mohammad-lifeos-exact-ui ]
     paths:
       - 'lifeos/**'
       - '.github/workflows/mohammad-lifeos.yml'
