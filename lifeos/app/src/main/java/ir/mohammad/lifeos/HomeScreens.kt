@@ -158,7 +158,7 @@ fun HomeScreen(
 
             LazyColumn(
                 Modifier.weight(1f),
-                contentPadding=PaddingValues(horizontal=10.dp,bottom=12.dp),
+                contentPadding=PaddingValues(start=10.dp,end=10.dp,bottom=12.dp),
                 verticalArrangement=Arrangement.spacedBy(10.dp)
             ){
                 item{
