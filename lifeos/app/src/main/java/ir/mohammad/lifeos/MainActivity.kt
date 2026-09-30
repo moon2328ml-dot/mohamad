@@ -8,7 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.platform.LocalLayoutDirection\nimport androidx.core.view.WindowCompat\nimport android.graphics.Color as AndroidColor
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.core.view.WindowCompat
+import android.graphics.Color as AndroidColor
 
 enum class Screen {
  HOME, ROUTINE, DAILY_GOALS, YEARLY_GOALS, LONG_GOALS, FINANCE, DEBTS, BODY,
@@ -29,6 +31,12 @@ class MainActivity:ComponentActivity(){
     var dark by remember{mutableStateOf(store.darkMode)}
     var screen by remember{mutableStateOf(if(store.profileReady())Screen.HOME else Screen.ACCOUNT)}
     val back={screen=Screen.HOME}
+    LaunchedEffect(dark){
+     window.statusBarColor=if(dark) AndroidColor.rgb(5,7,12) else AndroidColor.WHITE
+     window.navigationBarColor=if(dark) AndroidColor.rgb(5,7,12) else AndroidColor.WHITE
+     WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightStatusBars=!dark
+     WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightNavigationBars=!dark
+    }
     LifeTheme(dark=dark){
      when(screen){
       Screen.HOME->HomeScreen(
