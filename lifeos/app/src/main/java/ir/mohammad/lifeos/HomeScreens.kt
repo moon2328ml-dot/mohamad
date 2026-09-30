@@ -114,11 +114,11 @@ fun HomeScreen(
     onToggleDark:()->Unit,
     onOpen:(Screen)->Unit
 ){
-    val routine=store.items("routine")
+    val routine=store.loadRoutine()
     val goals=store.items("daily_goal")
-    val today=routine+goals
-    val done=today.count{it.done}
-    val progress=if(today.isEmpty()) 0 else (done*100/today.size).coerceIn(0,100)
+    val totalToday=routine.size+goals.size
+    val done=routine.count{it.done}+goals.count{it.done}
+    val progress=if(totalToday==0) 0 else (done*100/totalToday).coerceIn(0,100)
     val investments=store.loadMoney().filter{it.kind=="investment"}.sumOf{it.amount}
     val latestWeight=store.loadWeights().lastOrNull()?.weight
 
