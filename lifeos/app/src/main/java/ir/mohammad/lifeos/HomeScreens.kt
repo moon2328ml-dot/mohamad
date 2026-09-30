@@ -219,6 +219,34 @@ fun HomeScreen(
                 }
 
                 item{
+                    GlassCard{
+                        Text("ابزارهای من",fontWeight=FontWeight.ExtraBold,fontSize=16.sp,color=Gold)
+                        Text("اهداف، مالی، خاطرات و رشد؛ همه در دسترس خودت",fontSize=10.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(9.dp))
+                        val tools=listOf(
+                            Triple("✓","اهداف امروز",Screen.DAILY_GOALS),
+                            Triple("★","اهداف سالانه",Screen.YEARLY_GOALS),
+                            Triple("∞","بلندمدت",Screen.LONG_GOALS),
+                            Triple("⌁","اقساط",Screen.DEBTS),
+                            Triple("♜","سرمایه",Screen.INVESTMENT),
+                            Triple("✦","شکرگزاری",Screen.GRATITUDE),
+                            Triple("✎","خاطرات",Screen.MEMORIES),
+                            Triple("⚒","آزمایشگاه",Screen.MISTAKES),
+                            Triple("⏰","یادآورها",Screen.REMINDERS)
+                        )
+                        tools.chunked(3).forEach{row->
+                            Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                                row.forEach{tool->
+                                    QuickTool(tool.first,tool.second,Modifier.weight(1f)){onOpen(tool.third)}
+                                }
+                                repeat(3-row.size){Spacer(Modifier.weight(1f))}
+                            }
+                            Spacer(Modifier.height(6.dp))
+                        }
+                    }
+                }
+
+                item{
                     Row(horizontalArrangement=Arrangement.spacedBy(7.dp)){
                         StatPill("مسیر امروز",progress.toString()+"%",Modifier.weight(1f))
                         StatPill("سرمایه",money(investments),Modifier.weight(1f))
@@ -271,6 +299,23 @@ private fun HomeCategoryTile(card:Dash,onOpen:(Screen)->Unit){
             textAlign=TextAlign.Center,
             modifier=Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal=3.dp,vertical=6.dp)
         )
+    }
+}
+
+@Composable
+private fun QuickTool(symbol:String,label:String,modifier:Modifier=Modifier,onClick:()->Unit){
+    val dark=LocalDarkMode.current
+    Surface(
+        onClick=onClick,
+        modifier=modifier.height(58.dp),
+        shape=RoundedCornerShape(14.dp),
+        color=if(dark)Color(0xB3151A23) else Color(0xDFFFFFFF),
+        border=androidx.compose.foundation.BorderStroke(1.dp,Gold.copy(.55f))
+    ){
+        Column(Modifier.fillMaxSize().padding(5.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
+            Text(symbol,color=Gold,fontSize=16.sp,fontWeight=FontWeight.Bold)
+            Text(label,fontSize=9.sp,fontWeight=FontWeight.Bold,textAlign=TextAlign.Center,maxLines=1)
+        }
     }
 }
 
