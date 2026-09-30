@@ -154,7 +154,7 @@ fun BodyScreen(store:LifeStore,onBack:()->Unit,onChange:()->Unit){
     val today=LocalDate.now().toString();val ft=foods.filter{it.date==today}
     Text("امروز: "+ft.sumOf{it.calories}+" kcal  •  "+ft.sumOf{it.protein}+" g پروتئین",fontWeight=FontWeight.Bold,color=Gold,modifier=Modifier.padding(top=8.dp))
    }
-   items(foods.take(10),key={it.id}){x->Card(colors=CardDefaults.cardColors(containerColor=Color.White)){Row(Modifier.fillMaxWidth().padding(10.dp)){Text(x.name,Modifier.weight(1f));Text(x.calories.toString()+" kcal • "+x.protein+"g",fontWeight=FontWeight.Bold);TextButton(onClick={store.deleteFood(x.id);foods=store.loadFoods().reversed();onChange()}){Text("×")}}}}
+   items(foods.take(10),key={it.id}){x->GlassCard{Row(Modifier.fillMaxWidth()){Text(x.name,Modifier.weight(1f));Text(x.calories.toString()+" kcal • "+x.protein+"g",fontWeight=FontWeight.Bold);TextButton(onClick={store.deleteFood(x.id);foods=store.loadFoods().reversed();onChange()}){Text("×")}}}}
    item{SectionTitle("روتین باشگاه","شروع ساده فول‌بادی؛ وزنه را سبک بگیر و فرم صحیح را اولویت بده.")}
    items(workouts,key={it.id}){x->Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Checkbox(x.done,{store.toggleItem(x.id);workouts=store.items("workout");onChange()},colors=CheckboxDefaults.colors(checkedColor=Gold));Text(x.title,Modifier.weight(1f))}}
   }
