@@ -184,17 +184,28 @@ object PdfExporter {
         }
         y += 8
         y = drawRtl(page.canvas, "ریز هزینه‌ها", y, 14f, true)
-        val invoiceCosts = if (truckAccounting.isNotEmpty()) truckAccounting.values.toList() else listOf(accounting)
-        listOf(
-            "حق ترخیص" to invoiceCosts.sumOf { it.clearanceFee },
-            "هزینه اظهار" to invoiceCosts.sumOf { it.declarationFee },
-            "مبلغ کرایه" to invoiceCosts.sumOf { it.freightFee },
-            "هزینه جرثقیل" to invoiceCosts.sumOf { it.craneFee },
-            "هزینه‌های متفرقه" to invoiceCosts.sumOf { it.miscFee }
-        ).forEachIndexed { index, (label, value) -> y = moneyRow(page.canvas, y, "${index + 1}. $label", value) }
+        val invoiceCosts = truckAccounting.values.toList()
+        val costRows: List<Pair<String, Long>> = if (invoiceCosts.isNotEmpty()) {
+            listOf(
+                "حق ترخیص" to invoiceCosts.fold(0L) { acc, item -> acc + item.clearanceFee },
+                "هزینه اظهار" to invoiceCosts.fold(0L) { acc, item -> acc + item.declarationFee },
+                "مبلغ کرایه" to invoiceCosts.fold(0L) { acc, item -> acc + item.freightFee },
+                "هزینه جرثقیل" to invoiceCosts.fold(0L) { acc, item -> acc + item.craneFee },
+                "هزینه‌های متفرقه" to invoiceCosts.fold(0L) { acc, item -> acc + item.miscFee }
+            )
+        } else {
+            listOf(
+                "حق ترخیص" to accounting.clearanceFee,
+                "هزینه اظهار" to accounting.declarationFee,
+                "مبلغ کرایه" to accounting.freightFee,
+                "هزینه جرثقیل" to accounting.craneFee,
+                "هزینه‌های متفرقه" to accounting.miscFee
+            )
+        }
+        costRows.forEachIndexed { index, row -> y = moneyRow(page.canvas, y, "${index + 1}. ${row.first}", row.second) }
         y += 5
-        val invoiceTotal = invoiceCosts.sumOf { it.total }
-        val invoicePaid = invoiceCosts.sumOf { it.paidAmount }
+        val invoiceTotal = if (invoiceCosts.isNotEmpty()) invoiceCosts.fold(0L) { acc, item -> acc + item.total } else accounting.total
+        val invoicePaid = if (invoiceCosts.isNotEmpty()) invoiceCosts.fold(0L) { acc, item -> acc + item.paidAmount } else accounting.paidAmount
         val invoiceRemaining = invoiceTotal - invoicePaid
         y = moneyRow(page.canvas, y, "جمع کل هزینه‌ها", invoiceTotal, true)
         y = moneyRow(page.canvas, y, "مبلغ پرداخت‌شده", invoicePaid)
