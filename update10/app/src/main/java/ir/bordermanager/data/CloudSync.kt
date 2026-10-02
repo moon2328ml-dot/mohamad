@@ -140,7 +140,7 @@ class CloudSyncManager(context: Context, private val db: DatabaseHelper) {
         val body = JSONObject()
             .put("user_id", session.userId)
             .put("payload", payload)
-            .put("schema_version", 4)
+            .put("schema_version", 5)
             .put("updated_at", java.time.Instant.now().toString())
         request(
             method = "POST",
