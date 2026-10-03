@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.BorderManager" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:statusBarColor">#111018</item>
+        <item name="android:navigationBarColor">#111018</item>
+    </style>
+</resources>
