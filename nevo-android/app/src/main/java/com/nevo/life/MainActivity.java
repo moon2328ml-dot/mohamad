@@ -28,11 +28,17 @@ public class MainActivity extends Activity {
         web.loadUrl("file:///android_asset/index.html");
         setContentView(web, new FrameLayout.LayoutParams(-1, -1));
     }
+    @SuppressWarnings("deprecation")
     @Override public void onBackPressed() {
         View v = findViewById(android.R.id.content);
         if (v instanceof FrameLayout && ((FrameLayout)v).getChildCount() > 0 && ((FrameLayout)v).getChildAt(0) instanceof WebView) {
             WebView w = (WebView)((FrameLayout)v).getChildAt(0);
-            if (w.canGoBack()) { w.goBack(); return; }
+            w.evaluateJavascript("(typeof window.nevoBack === 'function' ? window.nevoBack() : false)", value -> {
+                if (!"true".equals(value)) {
+                    MainActivity.super.onBackPressed();
+                }
+            });
+            return;
         }
         super.onBackPressed();
     }
