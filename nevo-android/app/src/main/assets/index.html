@@ -47,8 +47,8 @@ function calendarMarkup(){
   const first=new Date(calendarDate); let guard=0;
   while(toEn(persianParts(first).day)!=='1' && guard++<35) first.setDate(first.getDate()-1);
   const offset=(first.getDay()+1)%7;
-  const cells=[];
-  for(let i=0;i<42;i++){
+  const cells=Array.from({length:offset},()=>'<div class="day muted"></div>');
+  for(let i=0;i<42-offset;i++){
     const d=new Date(first); d.setDate(first.getDate()+i);
     const p=persianParts(d); const muted=toEn(p.month)!==currentMonth;
     const cls=['day',muted?'muted':'',sameDay(d,new Date())?'today':''].filter(Boolean).join(' ');
