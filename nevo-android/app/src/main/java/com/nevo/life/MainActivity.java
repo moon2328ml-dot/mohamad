@@ -4,15 +4,12 @@ import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.CancellationSignal;
 import android.os.Environment;
-import android.print.PageRange;
-import android.print.PrintAttributes;
-import android.print.PrintDocumentAdapter;
-import android.print.PrintDocumentInfo;
 import android.provider.MediaStore;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
@@ -20,7 +17,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
-import android.os.ParcelFileDescriptor;
+import android.view.View;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -92,8 +89,10 @@ public class MainActivity extends Activity {
         WebSettings settings = pdfWeb.getSettings();
         settings.setJavaScriptEnabled(false);
         settings.setDefaultTextEncodingName("UTF-8");
-        pdfWeb.setVisibility(WebView.INVISIBLE);
-        root.addView(pdfWeb, new FrameLayout.LayoutParams(2, 2));
+        pdfWeb.setVisibility(View.VISIBLE);
+        pdfWeb.setX(-10000f);
+        pdfWeb.setY(-10000f);
+        root.addView(pdfWeb, new FrameLayout.LayoutParams(595, 842));
         pdfWeb.setWebViewClient(new WebViewClient() {
             private boolean completed = false;
             @Override public void onPageFinished(WebView view, String url) {
@@ -107,36 +106,25 @@ public class MainActivity extends Activity {
 
     private void writePdf(WebView pdfWeb, String title) {
         try {
+            final int pageWidth = 595;
+            int contentHeight = Math.max(842, Math.round(pdfWeb.getContentHeight() * pdfWeb.getScale()));
+            pdfWeb.measure(View.MeasureSpec.makeMeasureSpec(pageWidth, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(contentHeight, View.MeasureSpec.EXACTLY));
+            pdfWeb.layout(0, 0, pageWidth, contentHeight);
+
+            PdfDocument document = new PdfDocument();
+            PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(pageWidth, contentHeight, 1).create();
+            PdfDocument.Page page = document.startPage(info);
+            Canvas canvas = page.getCanvas();
+            canvas.drawColor(Color.WHITE);
+            pdfWeb.draw(canvas);
+            document.finishPage(page);
+
             File temp = new File(getCacheDir(), "nevo-report-" + System.currentTimeMillis() + ".pdf");
-            ParcelFileDescriptor descriptor = ParcelFileDescriptor.open(temp,
-                    ParcelFileDescriptor.MODE_CREATE | ParcelFileDescriptor.MODE_READ_WRITE | ParcelFileDescriptor.MODE_TRUNCATE);
-            PrintAttributes attributes = new PrintAttributes.Builder()
-                    .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
-                    .setResolution(new PrintAttributes.Resolution("nevo", "NEVo", 300, 300))
-                    .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
-                    .build();
-            PrintDocumentAdapter adapter = pdfWeb.createPrintDocumentAdapter(safeFileName(title, ""));
-            adapter.onLayout(null, attributes, attributes, new PrintDocumentAdapter.LayoutResultCallback() {
-                @Override public void onLayoutFinished(PrintDocumentInfo info, boolean changed) {
-                    adapter.onWrite(new PageRange[]{PageRange.ALL_PAGES}, descriptor, new CancellationSignal(), new PrintDocumentAdapter.WriteResultCallback() {
-                        @Override public void onWriteFinished(PageRange[] pages) {
-                            closeQuietly(descriptor);
-                            copyPdfToDownloads(temp, safeFileName(title, ".pdf"));
-                            cleanupPdfWeb(pdfWeb, temp);
-                        }
-                        @Override public void onWriteFailed(CharSequence error) {
-                            closeQuietly(descriptor);
-                            cleanupPdfWeb(pdfWeb, temp);
-                            toast("ساخت فایل PDF انجام نشد");
-                        }
-                    });
-                }
-                @Override public void onLayoutFailed(CharSequence error) {
-                    closeQuietly(descriptor);
-                    cleanupPdfWeb(pdfWeb, temp);
-                    toast("گزارش برای PDF آماده نشد");
-                }
-            }, null);
+            try (FileOutputStream out = new FileOutputStream(temp)) { document.writeTo(out); }
+            document.close();
+            copyPdfToDownloads(temp, safeFileName(title, ".pdf"));
+            cleanupPdfWeb(pdfWeb, temp);
         } catch (Exception e) {
             cleanupPdfWeb(pdfWeb, null);
             toast("ساخت فایل PDF انجام نشد");
@@ -203,9 +191,6 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void closeQuietly(ParcelFileDescriptor descriptor) {
-        try { descriptor.close(); } catch (Exception ignored) { }
-    }
 
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed() {
