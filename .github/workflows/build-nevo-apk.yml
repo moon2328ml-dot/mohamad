@@ -23,5 +23,5 @@ jobs:
       - run: gradle -p nevo-android assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
-          name: NEVo-v0.17.0-debug
+          name: NEVo-v0.18.0-debug
           path: nevo-android/app/build/outputs/apk/debug/app-debug.apk
