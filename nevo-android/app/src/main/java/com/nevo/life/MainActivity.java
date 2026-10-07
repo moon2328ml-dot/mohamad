@@ -1,6 +1,7 @@
 package com.nevo.life;
 
 import android.app.Activity;
+import android.Manifest;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -21,6 +22,9 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 import android.view.View;
+import android.content.pm.PackageManager;
+import android.media.MediaRecorder;
+import android.util.Base64;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,6 +37,10 @@ public class MainActivity extends Activity {
     private WebView mainWeb;
     private ValueCallback<Uri[]> filePathCallback;
     private static final int FILE_CHOOSER_REQUEST = 2401;
+    private static final int MIC_PERMISSION_REQUEST = 2402;
+    private MediaRecorder voiceRecorder;
+    private File voiceRecordingFile;
+    private boolean pendingVoiceStart;
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -116,6 +124,81 @@ public class MainActivity extends Activity {
         public void savePdf(String title, String html) {
             runOnUiThread(() -> renderPdf(title, html));
         }
+
+        @JavascriptInterface
+        public void startVoiceRecording() {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    pendingVoiceStart = true;
+                    requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_REQUEST);
+                    return;
+                }
+                startVoiceRecordingInternal();
+            });
+        }
+
+        @JavascriptInterface
+        public void stopVoiceRecording() {
+            runOnUiThread(MainActivity.this::stopVoiceRecordingInternal);
+        }
+    }
+
+    private void startVoiceRecordingInternal() {
+        if (voiceRecorder != null) return;
+        try {
+            voiceRecordingFile = new File(getCacheDir(), "nevo-voice-" + System.currentTimeMillis() + ".m4a");
+            voiceRecorder = new MediaRecorder();
+            voiceRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            voiceRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+            voiceRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            voiceRecorder.setAudioEncodingBitRate(128000);
+            voiceRecorder.setAudioSamplingRate(44100);
+            voiceRecorder.setOutputFile(voiceRecordingFile.getAbsolutePath());
+            voiceRecorder.prepare();
+            voiceRecorder.start();
+            callJs("window.nevoRecordingStarted&&window.nevoRecordingStarted()");
+        } catch (Exception e) {
+            releaseVoiceRecorder();
+            callJs("window.nevoRecordingError&&window.nevoRecordingError('ضبط صدا شروع نشد')");
+        }
+    }
+
+    private void stopVoiceRecordingInternal() {
+        if (voiceRecorder == null) return;
+        File finished = voiceRecordingFile;
+        try {
+            voiceRecorder.stop();
+            voiceRecorder.release();
+            voiceRecorder = null;
+            voiceRecordingFile = null;
+            if (finished == null || !finished.exists()) throw new IllegalStateException("recording file missing");
+            try (FileInputStream in = new FileInputStream(finished)) {
+                byte[] bytes = new byte[(int) finished.length()];
+                int offset = 0, count;
+                while (offset < bytes.length && (count = in.read(bytes, offset, bytes.length - offset)) != -1) offset += count;
+                String encoded = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                callJs("window.nevoRecordingReady&&window.nevoRecordingReady('data:audio/mp4;base64," + encoded + "')");
+            }
+            finished.delete();
+        } catch (Exception e) {
+            releaseVoiceRecorder();
+            if (finished != null) finished.delete();
+            callJs("window.nevoRecordingError&&window.nevoRecordingError('فایل ضبط‌شده آماده نشد')");
+        }
+    }
+
+    private void releaseVoiceRecorder() {
+        if (voiceRecorder != null) {
+            try { voiceRecorder.reset(); } catch (Exception ignored) {}
+            try { voiceRecorder.release(); } catch (Exception ignored) {}
+            voiceRecorder = null;
+        }
+        if (voiceRecordingFile != null) voiceRecordingFile.delete();
+        voiceRecordingFile = null;
+    }
+
+    private void callJs(String script) {
+        runOnUiThread(() -> { if (mainWeb != null) mainWeb.evaluateJavascript(script, null); });
     }
 
     private void renderPdf(String title, String html) {
@@ -235,6 +318,17 @@ public class MainActivity extends Activity {
             return;
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MIC_PERMISSION_REQUEST) {
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            boolean shouldStart = pendingVoiceStart;
+            pendingVoiceStart = false;
+            if (granted && shouldStart) startVoiceRecordingInternal();
+            else if (!granted) callJs("window.nevoRecordingError&&window.nevoRecordingError('اجازهٔ میکروفون داده نشد')");
+        }
     }
 
     @SuppressWarnings("deprecation")
