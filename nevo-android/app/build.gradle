@@ -1,5 +1,5 @@
 plugins { id 'com.android.application' }
 
 android { namespace 'com.nevo.life'; compileSdk 35
-    defaultConfig { applicationId 'com.nevo.life'; minSdk 24; targetSdk 35; versionCode 20; versionName '0.20.0' }
+    defaultConfig { applicationId 'com.nevo.life'; minSdk 24; targetSdk 35; versionCode 21; versionName '0.21.0' }
 }
