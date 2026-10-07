@@ -54,7 +54,14 @@ public class MainActivity extends Activity {
                     intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
                 }
-                intent.setType("image/*");
+                String chooserType = "*/*";
+                String[] acceptTypes = params.getAcceptTypes();
+                if (acceptTypes != null) {
+                    for (String accept : acceptTypes) {
+                        if (accept != null && !accept.trim().isEmpty()) { chooserType = accept; break; }
+                    }
+                }
+                intent.setType(chooserType);
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
                 try {
                     startActivityForResult(intent, FILE_CHOOSER_REQUEST);
