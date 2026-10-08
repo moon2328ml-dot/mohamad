@@ -21,6 +21,7 @@ sealed interface Screen {
     data object Owners : Screen
     data class OwnerDetail(val ownerId: Long) : Screen
     data class CargoDetail(val cargoId: Long) : Screen
+    data class Messaging(val cargoId: Long) : Screen
     data class TruckForm(val cargoId: Long, val truckId: Long? = null) : Screen
     data object Accounting : Screen
     data object Reports : Screen
