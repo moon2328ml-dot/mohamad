@@ -24,4 +24,15 @@ class AppPreferences(context: Context) {
     var compactMode: Boolean
         get() = prefs.getBoolean("compact_mode", false)
         set(value) = prefs.edit().putBoolean("compact_mode", value).apply()
+
+    /** Closed cargo parts are keyed by cargo id and Jalali year/month. */
+    fun isPartClosed(cargoId: Long, year: Int, month: Int): Boolean =
+        prefs.getStringSet("closed_parts", emptySet()).orEmpty().contains("$cargoId:$year:$month")
+
+    fun setPartClosed(cargoId: Long, year: Int, month: Int, closed: Boolean) {
+        val values = prefs.getStringSet("closed_parts", emptySet()).orEmpty().toMutableSet()
+        val key = "$cargoId:$year:$month"
+        if (closed) values += key else values -= key
+        prefs.edit().putStringSet("closed_parts", values).apply()
+    }
 }
