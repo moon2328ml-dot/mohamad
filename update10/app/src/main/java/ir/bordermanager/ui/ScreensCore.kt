@@ -138,7 +138,7 @@ fun OwnerDetailScreen(vm: AppViewModel, ownerId: Long, modifier: Modifier = Modi
                     }
                 }
             }
-            item { Spacer(Modifier.height(6.dp)); HorizontalDivider(); Spacer(Modifier.height(6.dp)); Row(verticalAlignment=Alignment.CenterVertically){Text("مدیریت نوع بارها",fontWeight=FontWeight.Bold,fontSize=18.sp,modifier=Modifier.weight(1f));Text("برای ثبت بار و ماشین جدید",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurface.copy(alpha=.55f))} }
+            item { Spacer(Modifier.height(6.dp)); HorizontalDivider(); Spacer(Modifier.height(6.dp)); Row(verticalAlignment=Alignment.CenterVertically){Text("مدیریت نوع بارها",fontWeight=FontWeight.Bold,fontSize=18.sp,modifier=Modifier.weight(1f));Text("برای ثبت پارت و پلاک جدید",fontSize=11.sp,color=MaterialTheme.colorScheme.onSurface.copy(alpha=.55f))} }
             if(cargos.isEmpty()) item { EmptyState("برای این صاحب کالا نوع باری ثبت نشده") } else items(cargos,key={"cargo-${it.id}"}) { c-> CargoCard(c,{vm.navigate(Screen.CargoDetail(c.id))},{edit=c},{delete=c}) }
             item{Spacer(Modifier.height(16.dp))}
         }
@@ -155,21 +155,135 @@ private fun CargoCard(c: CargoType,onClick:()->Unit,onEdit:()->Unit,onDelete:()-
 @Composable
 private fun CargoDialog(vm: AppViewModel,ownerId:Long,cargo:CargoType?,onDismiss:()->Unit) {
     var title by remember(cargo?.id){mutableStateOf(cargo?.title?:"")};var origin by remember(cargo?.id){mutableStateOf(cargo?.origin?:"")};var iraqiOwner by remember(cargo?.id){mutableStateOf(cargo?.iraqiOwner?:"")};var broker by remember(cargo?.id){mutableStateOf(cargo?.iraqiBroker?:"")}
-    AlertDialog(onDismissRequest=onDismiss,title={Text(if(cargo==null)"افزودن نوع بار" else "ویرایش نوع بار")},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(title,{title=it},label={Text("نوع بار")},singleLine=true);OutlinedTextField(origin,{origin=it},label={Text("مبدأ بارگیری")},singleLine=true);OutlinedTextField(iraqiOwner,{iraqiOwner=it},label={Text("صاحب کالای عراقی")},singleLine=true);OutlinedTextField(broker,{broker=it},label={Text("ترخیصکار عراقی")},singleLine=true);Text("تاریخ بارگیری/ثبت ماشین‌ها به‌صورت خودکار ثبت می‌شود.",fontSize=11.sp,color=Purple)}},confirmButton={Button(onClick={if(title.isNotBlank()){if(cargo==null)vm.repo.write{addCargoType(ownerId,title,origin,iraqiOwner,broker)}else vm.repo.write{updateCargoType(cargo.id,title,origin,iraqiOwner,broker)};onDismiss()}}){Text("ذخیره")}},dismissButton={TextButton(onClick=onDismiss){Text("انصراف")}})
+    AlertDialog(onDismissRequest=onDismiss,title={Text(if(cargo==null)"افزودن نوع بار" else "ویرایش نوع بار")},text={Column(verticalArrangement=Arrangement.spacedBy(8.dp)){OutlinedTextField(title,{title=it},label={Text("نوع بار")},singleLine=true);OutlinedTextField(origin,{origin=it},label={Text("مبدأ بارگیری")},singleLine=true);OutlinedTextField(iraqiOwner,{iraqiOwner=it},label={Text("صاحب کالای عراقی")},singleLine=true);OutlinedTextField(broker,{broker=it},label={Text("ترخیصکار عراقی")},singleLine=true);Text("تاریخ بارگیری/ثبت پلاک‌ها به‌صورت خودکار ثبت می‌شود.",fontSize=11.sp,color=Purple)}},confirmButton={Button(onClick={if(title.isNotBlank()){if(cargo==null)vm.repo.write{addCargoType(ownerId,title,origin,iraqiOwner,broker)}else vm.repo.write{updateCargoType(cargo.id,title,origin,iraqiOwner,broker)};onDismiss()}}){Text("ذخیره")}},dismissButton={TextButton(onClick=onDismiss){Text("انصراف")}})
 }
 
 @Composable
 fun CargoDetailScreen(vm: AppViewModel, cargoId: Long, modifier: Modifier = Modifier) {
-    val rev by vm.repo.revision.collectAsState(); val cargo=remember(rev,cargoId){vm.repo.db.getCargoType(cargoId)}; val trucks=remember(rev,cargoId){vm.repo.db.listTrucksForCargo(cargoId)}
-    var deleteTruck by remember{mutableStateOf<Truck?>(null)}
-    if(cargo==null){EmptyState("نوع بار پیدا نشد");return}
+    val rev by vm.repo.revision.collectAsState()
+    val cargo = remember(rev, cargoId) { vm.repo.db.getCargoType(cargoId) }
+    val trucks = remember(rev, cargoId) { vm.repo.db.listTrucksForCargo(cargoId) }
+    val today = Jalali.now().date
+    var deleteTruck by remember { mutableStateOf<Truck?>(null) }
+    var closedVersion by remember { mutableStateOf(0) }
+    val prefs = vm.prefs
+    if (cargo == null) { EmptyState("نوع بار پیدا نشد"); return }
+
+    val monthGroups = trucks.groupBy {
+        val d = Jalali.fromEpoch(it.createdAt).date
+        d.year to d.month
+    }.toMutableMap()
+    val currentKey = today.year to today.month
+    if (!monthGroups.containsKey(currentKey)) monthGroups[currentKey] = emptyList()
+    val orderedMonths = monthGroups.keys.sortedWith(compareByDescending<Pair<Int,Int>> { it.first }.thenByDescending { it.second })
+
     Column(modifier.fillMaxSize()) {
-        ScreenTitle("جزئیات نوع بار",onBack={vm.back()},action={FilledIconButton(onClick={vm.navigate(Screen.TruckForm(cargoId))},colors=IconButtonDefaults.filledIconButtonColors(containerColor=Purple)){Icon(Icons.Default.Add,null)}})
-        Card(Modifier.fillMaxWidth().padding(horizontal=16.dp),shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=PurpleSoft)) { Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(cargo.title,fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink);Text("مبدأ بارگیری: ${cargo.origin.ifBlank{"-"}}");Text("صاحب کالای عراقی: ${cargo.iraqiOwner.ifBlank{"-"}}");Text("ترخیصکار عراقی: ${cargo.iraqiBroker.ifBlank{"-"}}");Text("تعداد ماشین: ${cargo.truckCount}",fontWeight=FontWeight.Bold,color=Purple)} }
-        Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){Text("ماشین‌ها",fontWeight=FontWeight.Bold,fontSize=17.sp,modifier=Modifier.weight(1f));Button(onClick={vm.navigate(Screen.TruckForm(cargoId))}){Icon(Icons.Default.Add,null,Modifier.size(18.dp));Text(" ثبت ماشین")}}
-        if(trucks.isEmpty())EmptyState("هنوز ماشینی برای این نوع بار ثبت نشده")else LazyColumn(contentPadding=PaddingValues(horizontal=16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){items(trucks,key={it.id}){t->TruckCard(t,showOwner=false,onEdit={vm.navigate(Screen.TruckForm(cargoId,t.id))},onStatus={vm.setStatus(t.id,it)})};item{Spacer(Modifier.height(16.dp))}}
+        ScreenTitle("مدیریت نوع بار", onBack = { vm.back() }, action = {
+            FilledIconButton(onClick = { vm.navigate(Screen.TruckForm(cargoId)) }, colors = IconButtonDefaults.filledIconButtonColors(containerColor = Purple)) {
+                Icon(Icons.Default.Add, null)
+            }
+        })
+        Surface(color = Color(0xFFF5F5FC), modifier = Modifier.fillMaxWidth()) {
+            Text("صاحبان بار  /  ${Jalali.Date(today.year, today.month, 1).monthTitle()}  /  ${cargo.title}", modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp), fontSize = 12.sp, color = Ink)
+        }
+        Card(Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF2F1FB))) {
+            Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(cargo.title, fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                    Text("صاحب کالا: ${cargo.iraqiOwner.ifBlank { "ثبت نشده" }}", fontSize = 12.sp)
+                    Text("سال: ${today.year}  •  نوع بار: ${cargo.title}", fontSize = 12.sp, color = Ink.copy(alpha = .65f))
+                }
+                Icon(Icons.Default.Inventory2, null, tint = Purple, modifier = Modifier.size(38.dp))
+            }
+        }
+        LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            item { Text("پارت‌ها", fontWeight = FontWeight.Bold, fontSize = 19.sp, modifier = Modifier.padding(top = 3.dp)) }
+            orderedMonths.forEach { key ->
+                val year = key.first; val month = key.second; val partTrucks = monthGroups[key].orEmpty()
+                val isClosed = prefs.isPartClosed(cargoId, year, month)
+                val isCarry = !isClosed && key != currentKey && (year < today.year || (year == today.year && month < today.month))
+                val title = "پارت ${Jalali.Date(year, month, 1).monthTitle()} $year"
+                item(key = "part-$cargoId-$year-$month-$closedVersion") {
+                    PartMonthCard(
+                        title = title,
+                        trucks = partTrucks,
+                        closed = isClosed,
+                        carried = isCarry,
+                        onAdd = { vm.navigate(Screen.TruckForm(cargoId)) },
+                        onToggleClosed = { prefs.setPartClosed(cargoId, year, month, !isClosed); closedVersion++ }
+                    )
+                }
+                if (partTrucks.isNotEmpty() && !isClosed) {
+                    item(key = "trucks-$cargoId-$year-$month") {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            partTrucks.sortedWith(compareBy<Truck> { if (it.parkingQueue > 0) 0 else 1 }.thenBy { it.parkingQueue }).forEach { truck ->
+                                TruckCard(truck, showOwner = false, onEdit = { vm.navigate(Screen.TruckForm(cargoId, truck.id)) }, onStatus = { vm.setStatus(truck.id, it) })
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                Surface(color = Color(0xFFF6F7FB), shape = RoundedCornerShape(17.dp), modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (orderedMonths.size == 1 && monthGroups[currentKey].orEmpty().isEmpty()) {
+                            Icon(Icons.Default.LocalShipping, null, tint = Color(0xFF9AA4C2), modifier = Modifier.size(38.dp))
+                            Text("پارتی در این ماه ثبت نشده است", fontWeight = FontWeight.Bold, color = Ink)
+                            Text("برای شروع، پارت جدید ایجاد کنید.", fontSize = 12.sp, color = Ink.copy(alpha = .58f))
+                        }
+                        OutlinedButton(onClick = { vm.navigate(Screen.TruckForm(cargoId)) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+                            Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("ایجاد پارت جدید")
+                        }
+                    }
+                }
+            }
+            item { PartColorLegend() }
+            item { Spacer(Modifier.height(18.dp)) }
+        }
     }
-    deleteTruck?.let{t->ConfirmDeleteDialog("ماشین ${t.plate}",{deleteTruck=null}){vm.repo.write{deleteTruck(t.id)};deleteTruck=null}}
+    deleteTruck?.let { t -> ConfirmDeleteDialog("ماشین ${t.plate}", { deleteTruck = null }) { vm.repo.write { deleteTruck(t.id) }; deleteTruck = null } }
+}
+
+@Composable
+private fun PartMonthCard(title: String, trucks: List<Truck>, closed: Boolean, carried: Boolean, onAdd: () -> Unit, onToggleClosed: () -> Unit) {
+    val bg = when { closed -> Color(0xFFE8F8F1); carried -> Color(0xFFFFF2D6); else -> PurpleSoft }
+    val accent = when { closed -> Color(0xFF15966C); carried -> Color(0xFFD58A00); else -> Purple }
+    Card(colors = CardDefaults.cardColors(containerColor = bg), shape = RoundedCornerShape(17.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(title, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Ink)
+                        Spacer(Modifier.width(7.dp))
+                        Surface(color = accent.copy(alpha = .15f), shape = RoundedCornerShape(20.dp)) { Text(if (closed) "بسته‌شده" else if (carried) "منتقل‌شده از ماه قبل" else "باز", color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)) }
+                    }
+                    if (trucks.isNotEmpty()) Text("${trucks.size} ماشین  •  ${Formatters.weightKg(trucks.sumOf { it.weightKg })}", fontSize = 12.sp, color = Ink.copy(alpha = .64f))
+                    if (closed) Text("پایان: اطلاعات این پارت تکمیل و بسته شده است", fontSize = 11.sp, color = accent)
+                    else if (carried) Text("این پارت از ماه قبل ادامه دارد", fontSize = 11.sp, color = accent)
+                }
+                IconButton(onClick = { }) { Icon(Icons.Default.MoreVert, null, tint = Ink) }
+            }
+            if (!closed) {
+                Button(onClick = onAdd, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple)) {
+                    Icon(Icons.Default.Add, null); Spacer(Modifier.width(5.dp)); Text("افزودن پلاک به این پارت")
+                }
+                OutlinedButton(onClick = onToggleClosed, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Icon(Icons.Default.Lock, null); Spacer(Modifier.width(5.dp)); Text("بستن پارت") }
+            } else {
+                OutlinedButton(onClick = onToggleClosed, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(5.dp)); Text("باز کردن مجدد") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PartColorLegend() {
+    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F7FB)), shape = RoundedCornerShape(15.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+            listOf("پارت ماه جاری" to Purple, "پارت باز منتقل‌شده" to Color(0xFFD58A00), "پارت بسته‌شده" to Color(0xFF15966C)).forEach { (label, color) ->
+                Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(10.dp).background(color, RoundedCornerShape(50))); Spacer(Modifier.width(4.dp)); Text(label, fontSize = 10.sp, color = Ink.copy(alpha = .7f)) }
+            }
+        }
+    }
 }
 
 @Composable
@@ -189,7 +303,7 @@ fun TruckFormScreen(vm: AppViewModel, cargoId: Long, truckId: Long?, modifier: M
     var cottageNumber by remember(existing?.id){mutableStateOf(existing?.cottageNumber?:"")}
     var error by remember{mutableStateOf<String?>(null)}
     Column(modifier.fillMaxSize()) {
-        ScreenTitle(if(existing==null)"ثبت ماشین جدید" else "ویرایش ماشین",onBack={vm.back()})
+        ScreenTitle(if(existing==null)"ثبت پلاک" else "ویرایش پلاک",onBack={vm.back()})
         LazyColumn(contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             item { Card(colors=CardDefaults.cardColors(containerColor=PurpleSoft),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(14.dp)){Text(owner?.name?:"",fontWeight=FontWeight.Bold);Text("نوع بار: ${cargo?.title?:"-"}",fontSize=12.sp);Text("تاریخ و ساعت ثبت به‌صورت خودکار ذخیره می‌شود",fontSize=11.sp,color=Purple)}} }
             item { OutlinedTextField(plate,{plate=it},label={Text("شماره پلاک")},modifier=Modifier.fillMaxWidth(),singleLine=true) }
@@ -256,7 +370,7 @@ fun TruckFormScreen(vm: AppViewModel, cargoId: Long, truckId: Long?, modifier: M
                         vm.back()
                     }
                 }
-            },modifier=Modifier.fillMaxWidth().height(52.dp),shape=RoundedCornerShape(14.dp)){Icon(Icons.Default.Save,null);Spacer(Modifier.width(6.dp));Text("ذخیره ماشین")}}
+            },modifier=Modifier.fillMaxWidth().height(52.dp),shape=RoundedCornerShape(14.dp)){Icon(Icons.Default.Save,null);Spacer(Modifier.width(6.dp));Text("ذخیره پلاک")}}
             item{Spacer(Modifier.height(12.dp))}
         }
     }
