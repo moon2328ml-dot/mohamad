@@ -11,8 +11,8 @@ android {
         applicationId = "ir.bordermanager"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1000
-        versionName = "10.0.0"
+        versionCode = 1037
+        versionName = "1.9.37"
         vectorDrawables { useSupportLibrary = true }
     }
 
